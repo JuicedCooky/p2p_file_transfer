@@ -9,15 +9,12 @@ use std::error::Error;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn Error>> {
-    // let file_contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
-    // let file = FileDialog::new();
-    // Open a TCP stream to the socket address.
-    //
-    // Note that this is the Tokio TcpStream, which is fully async.
 
     println!("TESTING SENDER");
 
-    let mut stream = TcpStream::connect("192.168.0.711:8080").await?;
+    //run ncat -l 6142 (in wsl or linux)
+    //127.0.0.1 is the ip address of the current device
+    let mut stream = TcpStream::connect("127.0.0.1:6142").await?;
     println!("created stream");
 
 
