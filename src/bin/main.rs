@@ -33,7 +33,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
     // }
     match local_ip(){
         Ok(ip) => println!("Server running\nLocal Address: {}", ip),
-        Err(_) => (),
+        Err(e) => println!("Could not start server!\n{}",e.to_string()),
     }
 
     loop {
