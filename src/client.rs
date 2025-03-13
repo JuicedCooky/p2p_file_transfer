@@ -1,5 +1,6 @@
 // use tokio::io::AsyncWriteExt;
 use std::net::TcpListener;
+use std::net::TcpStream;
 
 // use std::error::Error;
 
@@ -8,13 +9,10 @@ use std::net::TcpListener;
 // use rfd::FileDialog;
 
 #[tokio::main]
-pub async fn main() {
-    let mut listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    println!("TESTING CLIENT");
+async fn main() -> std::io::Result<()>{
+    let ip_addr = "172.21.208.1:6142";
+    let mut stream = TcpStream::connect(ip_addr).await?;
+    println!("Connected to server {}",ip_addr);
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-
-        println!("Connection established!");
-    }
+    Ok(())
 }
