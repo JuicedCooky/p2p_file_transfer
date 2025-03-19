@@ -39,30 +39,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
     }
     else if "2" == choice
     {
-            //notes for ip address of the current device/server:
-        //->ipconfig, to list ip addresses
-        //Wireless LAN adapter Wi-Fi -> IPv4 Address
-        // let mut ip_addr = "172.21.208.1:6142".to_string();
-        let mut ip_addr = String::new();
-
-        print!("Enter ip-address:");
-        std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut ip_addr).unwrap();
-
-        if ip_addr.trim().is_empty(){
-            println!("Using default ip-address.");
-            ip_addr = "10.160.3.126:6142".to_string();
-        }
-        else{
-            ip_addr = ip_addr.trim().to_string();
-        }
-
-        if TcpStream::connect(&ip_addr).await.is_ok(){
-            println!("Connected to Server: {}",ip_addr);
-        }
-        else{
-            println!("Failed to connect to Server: {}",ip_addr);
-        }
+        let client = client::Client::new().await?;
     }
     else {
         println!("ERROR NO CHOICE SPECIFIED");
