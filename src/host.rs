@@ -13,16 +13,17 @@ impl Host {
         let port = port.unwrap_or("6142");
         let listener = TcpListener::bind(format!("0.0.0.0:{}",port)).await?;
         match local_ip(){
-            Ok(ip) => println!("Server running\nLocal Address: {}", ip),
+            Ok(ip) => println!("Server running\nLocal Address: {}:{}", ip,port),
             Err(e) => println!("Could not start server!\n{}",e.to_string()),
         }
 
         loop {
-            match listener.accept().await {
+            let stream = listener.accept().await;
+            match stream{
                 Ok((stream,addr)) => 
                 {
                     println!("Connection from {}", addr);
-                    utils::displayOptions();
+                    utils::display_options(&stream);
                 }
                 Err(e) => eprintln!("Failed connection :{}",e),
             }

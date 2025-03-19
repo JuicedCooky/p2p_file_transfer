@@ -2,6 +2,7 @@ use std::error::Error;
 use tokio::net::TcpStream;
 
 use std::io::Write;
+use super::utils;
 pub struct Client{}
 
 impl Client{
@@ -23,10 +24,11 @@ impl Client{
         else{
             ip_addr = ip_addr.trim().to_string();
         }
-
-        match TcpStream::connect(&ip_addr).await{
+        let stream = TcpStream::connect(&ip_addr).await;
+        match stream{
             Ok(_) =>{
                 println!("Connected to Server: {}",ip_addr);
+                utils::display_options(&stream.unwrap());
                 Ok(())
             }
             Err(e) => {
