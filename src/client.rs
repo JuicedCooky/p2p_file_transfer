@@ -12,7 +12,7 @@ impl Client{
         // let mut ip_addr = "172.21.208.1:6142".to_string();
         let mut ip_addr = String::new();
 
-        print!("Enter ip-address:");
+        print!("Enter ip-address:socket:");
         std::io::stdout().flush().unwrap();
         std::io::stdin().read_line(&mut ip_addr).unwrap();
 

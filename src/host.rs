@@ -4,6 +4,8 @@ use std::error::Error;
 use tokio::net::TcpListener;
 use local_ip_address::local_ip;
 
+use super::utils;
+
 pub struct Host{}
 
 impl Host {
@@ -20,6 +22,7 @@ impl Host {
                 Ok((stream,addr)) => 
                 {
                     println!("Connection from {}", addr);
+                    utils::displayOptions();
                 }
                 Err(e) => eprintln!("Failed connection :{}",e),
             }

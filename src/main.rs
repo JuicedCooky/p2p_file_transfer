@@ -19,6 +19,7 @@ use std::string;
 
 mod host;
 mod client;
+mod utils;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn Error>> {
