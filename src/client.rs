@@ -3,10 +3,17 @@ use tokio::net::TcpStream;
 
 use std::io::Write;
 use super::utils;
+use tokio::signal;
 pub struct Client{}
 
 impl Client{
     pub async fn new() -> Result<(), Box<dyn Error>>{
+        tokio::spawn(async {
+            signal::ctrl_c().await;
+            println!("CONTRL-C");
+            
+        });
+
             //notes for ip address of the current device/server:
         //->ipconfig, to list ip addresses
         //Wireless LAN adapter Wi-Fi -> IPv4 Address
@@ -28,7 +35,7 @@ impl Client{
         match stream{
             Ok(_) =>{
                 println!("Connected to Server: {}",ip_addr);
-                utils::display_options(&stream.unwrap());
+                utils::display_options(&stream.unwrap()).await;
                 Ok(())
             }
             Err(e) => {

@@ -1,0 +1,4 @@
+Problems encountered:
+
+With tcpstreams, figuring out a way to determine when a connection is closed:
+- Make a thread just to figuring out that the connection is closed
