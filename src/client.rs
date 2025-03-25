@@ -8,11 +8,6 @@ pub struct Client{}
 
 impl Client{
     pub async fn new() -> Result<(), Box<dyn Error>>{
-        tokio::spawn(async {
-            signal::ctrl_c().await;
-            println!("CONTRL-C");
-            
-        });
 
             //notes for ip address of the current device/server:
         //->ipconfig, to list ip addresses
@@ -35,6 +30,15 @@ impl Client{
         match stream{
             Ok(_) =>{
                 println!("Connected to Server: {}",ip_addr);
+
+                
+                tokio::spawn(async {
+                    loop{
+                        // if (stream)
+                    }
+                    
+                });
+
                 utils::display_options(&stream.unwrap()).await;
                 Ok(())
             }
