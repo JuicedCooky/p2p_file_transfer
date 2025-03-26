@@ -896,6 +896,7 @@ dependencies = [
 name = "p2p"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "get_if_addrs",
  "local-ip-address",
  "rfd",

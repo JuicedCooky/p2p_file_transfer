@@ -5,6 +5,7 @@ use tokio::net::TcpListener;
 
 
 use tokio::io::AsyncReadExt;
+use utils::file;
 
 use std::error::Error;
 use std::io::Write;
@@ -41,6 +42,11 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
     else if "2" == choice
     {
         let client = client::Client::new().await?;
+    }
+    else if "3" == choice{
+        let listener = TcpListener::bind(format!("0.0.0.0:6142")).await?;
+        let mut stream = listener.accept().await;
+        // file(&mut stream);
     }
     else {
         println!("ERROR NO CHOICE SPECIFIED");

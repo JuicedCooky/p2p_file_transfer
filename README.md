@@ -42,3 +42,16 @@ tokio::select! {
 - allows current thread to switch between two or multiple contexts (something1 and something2), does not spawn threads for each context, 
 - Would be like if the cpu only has one core and processor
   - Allows contexts to be switched without waiting on another context (could be due to IO events, or up to the scheduler)
+
+
+### Using TcpStream across multiple threads
+Since TcpStreams can't be moved across multiple threads; So the std::sync::Arc needs to be used.
+
+It provides a shared ownership of a stream : TcpStream by cloning reference pointers to it on the heap
+```
+let stream_read_copy = Arc::clone(&stream);
+
+let exampleThread = tokio::spawn(async move {
+  //use stream here
+});
+```

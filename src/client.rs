@@ -4,6 +4,8 @@ use tokio::net::TcpStream;
 use std::io::Write;
 use super::utils;
 use tokio::signal;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 pub struct Client{}
 
 impl Client{
@@ -22,6 +24,8 @@ impl Client{
         if ip_addr.trim().is_empty(){
             println!("Using default ip-address.");
             ip_addr = "10.160.3.126:6142".to_string();
+            ip_addr = "10.160.6.186:6142".to_string();
+            ip_addr = "10.160.18.168:6142".to_string();
         }
         else{
             ip_addr = ip_addr.trim().to_string();
@@ -30,7 +34,7 @@ impl Client{
         match stream{
             Ok(_) =>{
                 println!("Connected to Server: {}",ip_addr);
-
+                let stream = Arc::new(Mutex::new(stream.unwrap())); 
                 
                 tokio::spawn(async {
                     loop{
@@ -38,8 +42,8 @@ impl Client{
                     }
                     
                 });
-
-                utils::display_options(&stream.unwrap()).await;
+                let stream_cloned = Arc::clone(&stream);
+                utils::display_options(stream_cloned).await;
                 Ok(())
             }
             Err(e) => {
