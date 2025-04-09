@@ -47,7 +47,11 @@ pub async fn file(stream: Arc<Mutex<TcpStream>>) -> (){
     let mut file_str = file_str.to_str().unwrap();
     println!("test:{}",file_str);
 
-    let mut content = fs::read(file_str).await.unwrap();
+    let mut content: Vec<u8> = Vec::new();
+    match fs::read(file_str).await{
+        Ok(result) => {content = result;},
+        Err(e) => eprintln!("ERROR:{}",e),
+    }
     // let mut file = File::open(file_str).await;
     // match file {
     //     Ok(mut file) => {

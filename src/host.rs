@@ -9,7 +9,7 @@ use super::utils;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::io::stdout;
-
+use crate::thread::read::{self, read_from_stream};
 
 pub struct Host{}
 
@@ -41,23 +41,7 @@ impl Host {
 
                     let read_stream = tokio::spawn(async move{
                         // let mut buffer = String::new();
-                        loop{
-                            let read_lock = stream_read_copy.lock().await;
-                            match read_lock.ready(Interest::READABLE).await{
-                                Ok(_) => {
-                                    let mut buf =[0;4096];
-                                    // if(read_lock.poll_read_ready(cx))
-                                    match read_lock.try_read(&mut buf){
-                                        Ok(n) => {
-                                            println!("Read from {}:{}",addr,String::from_utf8_lossy(&buf));
-                                        }
-                                        // Ok(_) => {break;}
-                                        Err(e) => { }
-                                    }
-                                }
-                                Err(_) => {}
-                            }
-                        }
+                        read_from_stream(stream_read_copy).await;
                     });
                     // let result = options.await;
                     // tokio::spawn(async move{
