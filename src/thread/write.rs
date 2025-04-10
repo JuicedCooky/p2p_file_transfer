@@ -1,6 +1,7 @@
 use core::num;
 use std::fs::File;
 use std::sync::Arc;
+use local_ip_address::local_ip;
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use rfd::FileDialog;
@@ -39,41 +40,53 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>) -> (){
 pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
     let num_of_ports = 10;
     //creating ports
-    let mut available_ports:Vec<u16> = vec![];
-    for i in 0..num_of_ports{
-        let sub_listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
-        let port = sub_listener.local_addr().unwrap().port();
-        available_ports.push(port);
-    }
-
-    //writing list of ports to other device
-    let mut main_stream_lock = stream.lock().await;
-    let _ = main_stream_lock.write_all(b"FOLDER\n").await;
-    for port in available_ports{
-        let info = format!("PORT {}\n",port);
-        let _ = main_stream_lock.write_all(info.as_bytes()).await;
-    }
-    let _ = main_stream_lock.write_all(b"END\n").await;
+    loop{
+        let mut available_ports:Vec<u16> = vec![];
+        for i in 0..num_of_ports{
+            let mut sub_listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
+            let port = sub_listener.local_addr().unwrap().port();
+            available_ports.push(port);
 
 
-    if let Some(file_path) = FileDialog::new().set_directory("/".to_string()).pick_folder(){
-        println!("folder: {}",file_path.display());
-        if let Ok(mut files) = fs::read_dir(file_path).await{
-            let mut i = 1;
-            loop{
-                let result = files.next_entry().await;
-                match result{
-                    Ok(file) => {
-                        println!("File #{} : {:?}",i,file.unwrap().file_name());
-
-                    }
-                    Err(_) => println!("No more files")
+            tokio::spawn(async move{
+                if let Ok((mut sub_stream, addr)) = sub_listener.accept().await {
+                    println!("conn on port {} from {}", port, addr);
                 }
-                i+=1;
-            } 
+            });
         }
-    } else{
-        println!("No folder.")
+
+
+        //writing list of ports to other device
+        let mut main_stream_lock = stream.lock().await;
+        let _ = main_stream_lock.write_all(b"FOLDER\n").await;
+        let ip = local_ip().unwrap();
+        println!("LOCAL IP:{}",ip);
+        for port in available_ports{
+            let info = format!("PORT {}\n",port);
+            let _ = main_stream_lock.write_all(info.as_bytes()).await;
+        }
+        let _ = main_stream_lock.write_all(b"END\n").await;
+
+
+        if let Some(file_path) = FileDialog::new().set_directory("/".to_string()).pick_folder(){
+            println!("folder: {}",file_path.display());
+            if let Ok(mut files) = fs::read_dir(file_path).await{
+                let mut i = 1;
+                loop{
+                    let result = files.next_entry().await;
+                    match result{
+                        Ok(file) => {
+                            println!("File #{} : {:?}",i,file.unwrap().file_name());
+
+                        }
+                        Err(_) => println!("No more files")
+                    }
+                    i+=1;
+                } 
+            }
+        } else{
+            println!("No folder.")
+        }
     }
 }
 

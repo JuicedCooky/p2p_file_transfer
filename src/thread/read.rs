@@ -27,15 +27,17 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>) -> (){
                             // println!("{TEST}");
                             if String::from_utf8_lossy(&buf).contains("FOLDER"){
                                 println!("TEST");
-                                read_lock.read(&mut buf);
-                                let string_buf = String::from_utf8_lossy(&buf);
-                                if(string_buf.contains("PORT")){
-                                    let cloned_string: Cow<'_,str>= Cow::Owned(string_buf.to_string());
-                                    //spawn a thread for each port connection
-
-                                    tokio::spawn(async {
-                                        parse_file_per_port(cloned_string.into_owned()).await;
-                                    });
+                                loop{
+                                    let n = read_lock.read(&mut buf).await;
+                                    let string_buf = String::from_utf8_lossy(&buf);
+                                    if(string_buf.contains("PORT") && n.is_ok()){
+                                        let port = String::from(string_buf.to_string().strip_prefix("PORT").unwrap());
+                                        //spawn a thread for each port connection
+                                        let cloned_ip = stream_ip.clone();
+                                        tokio::spawn(async move{
+                                            parse_file_per_port(cloned_ip + ":" + port.clone().as_str().trim()).await;
+                                        });
+                                    }
                                 }
 
                             }
@@ -50,8 +52,13 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>) -> (){
     }
 }
 
-pub async fn parse_file_per_port(port: String){
-    // TcpStream::connect(stream.)
+pub async fn parse_file_per_port(address: String){
+    println!("PARSING_PORT: {}",address);
+    let stream = TcpStream::connect(address.trim()).await;
+    match stream{
+        Ok(mut stream)=>{println!("connected to port");}
+        Err(e) => {println!("Failed to connect to port:{}",e);}
+    }
 }
 
 pub async fn read_to_file(stream: Arc<Mutex<TcpStream>>) -> (){
