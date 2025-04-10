@@ -32,6 +32,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>) -> (){
             }
             Ok(_) => {
                 println!("Line:{}",line);
+                //for reading multiple files
                 if line.contains("PORT"){
                     let port = line.strip_prefix("PORT ").unwrap().to_string();
                     let ip = ip_add.ip().to_string();
@@ -43,6 +44,18 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>) -> (){
                         parse_file_per_port(parsed_port).await;
 
                     });
+                }
+                //reading a single file
+                else if line.contains("FILE"){
+                    line.clear();
+                    reader.read_line(&mut line).await;
+                    let file_name = line.strip_prefix("FILENAME:").unwrap().trim();
+                    println!("FILENAME:{}", file_name);
+
+                    line.clear();
+                    reader.read_line(&mut line).await;
+                    let file_name = line.strip_prefix("FILESIZE:").unwrap().trim();
+                    println!("FILESIZE:{}", file_name);
                 }
             }
             Err(e) => {

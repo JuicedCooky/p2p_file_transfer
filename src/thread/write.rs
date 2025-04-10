@@ -5,11 +5,15 @@ use local_ip_address::local_ip;
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use rfd::FileDialog;
-use tokio::fs;
+use tokio::fs::{self, metadata};
 use tokio::io::AsyncWriteExt;
 
 use crate::main;
 
+struct FileMetaData{
+    filename: String,
+    filesize: u64,
+}
 
 pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>) -> (){
     let mut file_path = String::new();
@@ -18,18 +22,31 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>) -> (){
     // }
     let file_path = FileDialog::new().set_directory("/".to_string()).pick_file();
     // let content = file.unwrap();
-    let mut file_str = file_path.clone().unwrap();
-    let mut file_str = file_str.to_str().unwrap();
-    println!("test:{}",file_str);
+    let cloned_file_path = file_path.clone().unwrap(); 
+    let file_str = cloned_file_path.file_name().unwrap().to_str().unwrap();
+
+    let file_size = metadata(file_path.unwrap()).await.unwrap().len();
+    println!("FILE_NAME:{}\nFILE_SIZE:{}",file_str,file_size);
+
+    let mut stream_lock = stream.lock().await;
+    
+    
+    stream_lock.write_all(b"FILE\n").await;
+    let filename_content = "FILENAME:".to_string() + file_str + "\n";
+    stream_lock.write_all(filename_content.as_bytes()).await;
+    let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
+    stream_lock.write_all(filesize_content.as_bytes()).await;
+
+    stream_lock.write_all(b"\n\n");
 
     let mut content: Vec<u8> = Vec::new();
-    match fs::read(file_str).await{
+    
+    match fs::read(cloned_file_path).await{
         Ok(result) => {content = result;},
         Err(e) => eprintln!("ERROR:{}",e),
     }
     let mut content_str = String::from_utf8_lossy(&content);
     
-    let mut stream_lock = stream.lock().await;
 
     stream_lock.write_all(&content).await;
     // stream_lock.write(b"test").await;
