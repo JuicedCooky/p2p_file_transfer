@@ -1,10 +1,14 @@
 // pub mod thread;
 
+use bytes::Bytes;
+use tokio::fs::File;
 use tokio::io::AsyncBufReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use std::borrow::Cow;
 use std::sync::Arc;
+use std::usize;
 use tokio::sync::Mutex;
 use tokio::io::AsyncReadExt;
 use tokio::io::Interest;
@@ -49,13 +53,33 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>) -> (){
                 else if line.contains("FILE"){
                     line.clear();
                     reader.read_line(&mut line).await;
-                    let file_name = line.strip_prefix("FILENAME:").unwrap().trim();
+                    let cloned_line = line.clone();
+                    let file_name = cloned_line.strip_prefix("FILENAME:").unwrap().trim();
                     println!("FILENAME:{}", file_name);
 
                     line.clear();
                     reader.read_line(&mut line).await;
-                    let file_name = line.strip_prefix("FILESIZE:").unwrap().trim();
-                    println!("FILESIZE:{}", file_name);
+                    let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
+                    println!("FILESIZE:{}", file_size);
+
+
+                    let mut received: usize = 0;
+                    let file_size_usize = file_size.parse::<usize>().unwrap(); 
+                    
+                    let mut file = File::create("./".to_string() + file_name).await.unwrap();
+
+                    let mut buffer = [0u8; 4096];
+                    while received < file_size_usize{
+                        let n = reader.read(&mut buffer).await.unwrap();
+
+                        if n == 0{
+                            break;
+                        }
+
+                        received += n;
+
+                        file.write_all(&mut buffer[..n]).await;
+                    }
                 }
             }
             Err(e) => {
