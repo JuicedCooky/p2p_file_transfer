@@ -21,7 +21,7 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
         match choice.as_str(){
             "1" => {
                 let cloned_stream = Arc::clone(&stream);
-                write_a_file(cloned_stream).await;
+                write_a_file(cloned_stream,None).await;
             }
             "2" => {
                 let cloned_stream = Arc::clone(&stream);

@@ -41,7 +41,7 @@ impl Host {
 
                     let read_stream = tokio::spawn(async move{
                         // let mut buffer = String::new();
-                        read_from_stream(stream_read_copy).await;
+                        read_from_stream(stream_read_copy,None).await;
                     });
                     // let result = options.await;
                     // tokio::spawn(async move{
