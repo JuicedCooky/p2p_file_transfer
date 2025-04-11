@@ -45,7 +45,7 @@ tokio::select! {
 
 
 ### Using TcpStream across multiple threads
-Since TcpStreams can't be moved across multiple threads; So the std::sync::Arc needs to be used.
+Since TcpStreams can't be moved across multiple threads by itself natively; std::sync::Arc needs to be used.
 
 It provides a shared ownership of a stream : TcpStream by cloning reference pointers to it on the heap
 ```
@@ -55,3 +55,17 @@ let exampleThread = tokio::spawn(async move {
   //use stream here
 });
 ```
+
+And to ensure that other threads that attempt to use it doesn't create a race condition and the stream itself can be used, we require locks.
+
+#### locks
+```
+stream:  Arc<Mutex<TcpStream>> <- initial lock for stream
+
+stream_lock = stream.lock().await; <- requests to use the lock and waits if not ready
+// we can then use this to access whatever the lock contains, in this case we can access the stream
+// once this variable is out of scope or "dropped" in rust, the lock is released.
+
+```
+
+### 
