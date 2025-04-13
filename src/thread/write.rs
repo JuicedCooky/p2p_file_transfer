@@ -153,6 +153,6 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
     let _ = stream.lock().await.write_all(b"END\n").await;
     stream.lock().await.flush().await;
     println!("TEST END");
-
+    folder_name = "";
 }
 
