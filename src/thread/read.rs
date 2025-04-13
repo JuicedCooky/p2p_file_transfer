@@ -130,6 +130,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                 else if line.contains("FILE"){
                     let mut lock = stream.lock().await;
                     let mut buf_reader = BufReader::new(&mut *lock);
+                    println!("tset");
                     line.clear();
                     buf_reader.read_line(&mut line).await;
                     let cloned_line = line.clone();
@@ -166,6 +167,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
 
                         file.write_all(&mut buffer[..n]).await;
                     }
+                    drop(lock);
                 }
             }
             Err(e) => {
