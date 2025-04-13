@@ -34,9 +34,9 @@ impl Host {
                     let stream = Arc::new(Mutex::new(stream));
                     //spawning a thread to handle options
                     let stream_copy = Arc::clone(&stream);
-                    let options = tokio::spawn(async move{
-                        utils::display_options(stream_copy).await;
-                    });
+                    //let options = tokio::spawn(async move{
+                    //    utils::display_options(stream_copy).await;
+                    //});
                     let stream_read_copy = Arc::clone(&stream);
 
                     let read_stream = tokio::spawn(async move{

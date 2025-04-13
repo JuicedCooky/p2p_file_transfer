@@ -5,6 +5,7 @@ use std::sync::Arc;
 use local_ip_address::local_ip;
 use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
+use tokio::time::{Duration, sleep};
 use rfd::FileDialog;
 use tokio::fs::{self, metadata};
 use tokio::io::AsyncWriteExt;
@@ -21,30 +22,35 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     else{
         file_path = path.unwrap();
     }
+    println!("{:?}", file_path);
     // let content = file.unwrap();
     let cloned_file_path = file_path.clone(); 
     let file_str = cloned_file_path.file_name().unwrap().to_str().unwrap();
 
     let file_size = metadata(file_path).await.unwrap().len();
-    println!("FILE_NAME:{}\nFILE_SIZE:{}",file_str,file_size);
+    //println!("FILE_NAME:{}\nFILE_SIZE:{}",file_str,file_size);
 
-    // let mut stream_lock = stream.lock().await;
+    let mut stream_lock = stream.lock().await;
     
-    
-    stream.lock().await.write_all(b"FILE\n").await;
-    stream.lock().await.flush().await;
+    stream_lock.write_all(b"FILE\n").await;
+    stream_lock.flush().await;
+    //stream.lock().await.flush().await;
 
     let filename_content = "FILENAME:".to_string() + file_str + "\n";
-    stream.lock().await.write_all(filename_content.as_bytes()).await;
-    stream.lock().await.flush().await;
+    stream_lock.write_all(filename_content.as_bytes()).await;
+    println!("Sent header {}", filename_content);
+    //stream.lock().await.flush().await;
 
     let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
-    stream.lock().await.write_all(filesize_content.as_bytes()).await;
-    stream.lock().await.flush().await;
+    stream_lock.write_all(filesize_content.as_bytes()).await;
+    println!("Sent header {}", filesize_content);
+    //stream.lock().await.flush().await;
 
 
-    stream.lock().await.write_all(b"\n\n");
-    stream.lock().await.flush().await;
+    stream_lock.write_all(b"\n\n");
+    //stream.lock().await.flush().await;
+
+    stream_lock.flush().await;
 
     let mut content: Vec<u8> = Vec::new();
     
@@ -55,11 +61,14 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     let mut content_str = String::from_utf8_lossy(&content);
     
 
-    stream.lock().await.write_all(&content).await;
-    stream.lock().await.flush().await;
+    stream_lock.write_all(&content).await;
+    stream_lock.flush().await;
+    println!("Finished sending file content, sleeping...");
+    sleep(Duration::from_secs(1)).await;
     // stream_lock.write(b"test").await;
 
-    println!("test:{}",content_str.as_ref());
+    println!("Sent following file contents:");
+    println!("{}",content_str.as_ref());
 }
 
 pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){

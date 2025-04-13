@@ -72,10 +72,15 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
             return FileDialog::new().set_title("Choose save location").set_directory("/".to_string()).pick_folder().unwrap();
         }).await.unwrap();
     }
+
+    println!("Data to be saved at location {:?}", save_location);
+
+    let mut stream_lock = stream.lock().await;
+    let mut reader = BufReader::new(&mut *stream_lock);
     
     loop{
         line.clear();
-        match read_line_from_stream(stream.clone(), &mut line).await{
+        match reader.read_line(&mut line).await { //read_line_from_stream(stream.clone(), &mut line).await{
             Ok(0) =>{
                 println!("CLOSED");
                 break;
@@ -89,7 +94,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                     let save_location =  save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str(); 
                     println!("TEST MAKING LOCATION:{}",save_location);
                     fs::create_dir(save_location.clone().trim()).await;
-                    println!("TEST");
+                    //println!("TEST");
                     let mut folder_lock = stream.lock().await;
 
                     let mut buf_reader = BufReader::new(&mut *folder_lock);
@@ -129,20 +134,30 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                 //reading a single file
                 else if line.contains("FILE"){
                     line.clear();
-                    read_line_from_stream(stream.clone(), &mut line).await;
+                    //read_line_from_stream(stream.clone(), &mut line).await;
+                    reader.read_line(&mut line).await;
                     let cloned_line = line.clone();
+                    //println!("Cloned line: {}", cloned_line);
                     let file_name = cloned_line.strip_prefix("FILENAME:").unwrap().trim();
                     println!("FILENAME:{}", file_name);
 
                     line.clear();
+                    reader.read_line(&mut line).await;
+                    println!("Post-header raw line: {:?}", line);
                     // println!("FILENAME:{}", file_name);
-                    read_line_from_stream(stream.clone(), &mut line).await;
+                    //read_line_from_stream(stream.clone(), &mut line).await;
                     let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
                     println!("FILESIZE:{}", file_size);
-
+                    
+                    //println!("Folder path is {:?}", folder_path);
 
                     let mut received: usize = 0;
-                    let file_size_usize = file_size.parse::<usize>().unwrap(); 
+                    let file_size_usize = file_size.parse::<usize>().unwrap();
+
+                    let file_path = save_location.join(file_name);
+                    println!("Writing to file path: {}", file_path.to_string_lossy());
+                    let mut file = File::create(file_path).await.unwrap();
+                    /* 
                     let mut file : File;
                     if folder_path.is_none(){
                         file = File::create("./".to_string() + file_name).await.unwrap();
@@ -150,8 +165,29 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                     else{
                         file = File::create(folder_path.as_ref().unwrap().to_string() + "/" + file_name).await.unwrap();
                     }
+                    */ 
 
+                    line.clear();
                     let mut buffer = [0u8; 4096];
+                    println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
+                    while received < file_size_usize{
+                        let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                        let n = reader.read(&mut buffer[..max_size]).await.unwrap();
+
+                        println!("Read {} bytes: {:?}", n, &buffer[..n]);
+
+                        if n == 0{
+                            break;
+                        }
+
+                        received += n;
+
+                        println!("Received {}/{} bytes", received, file_size_usize);
+
+                        file.write_all(&mut buffer[..n]).await;
+                    }
+                    /* 
+                    
                     while received < file_size_usize{
                         let n = stream.lock().await.read(&mut buffer).await.unwrap();
 
@@ -163,6 +199,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
 
                         file.write_all(&mut buffer[..n]).await;
                     }
+                    */
                 }
             }
             Err(e) => {
