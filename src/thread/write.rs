@@ -28,23 +28,23 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     let file_size = metadata(file_path).await.unwrap().len();
     println!("FILE_NAME:{}\nFILE_SIZE:{}",file_str,file_size);
 
-    let mut stream_lock = stream.lock().await;
+    // let mut stream_lock = stream.lock().await;
     
     
-    stream_lock.write_all(b"FILE\n").await;
-    stream_lock.flush().await;
+    stream.lock().await.write_all(b"FILE\n").await;
+    stream.lock().await.flush().await;
 
     let filename_content = "FILENAME:".to_string() + file_str + "\n";
-    stream_lock.write_all(filename_content.as_bytes()).await;
-    stream_lock.flush().await;
+    stream.lock().await.write_all(filename_content.as_bytes()).await;
+    stream.lock().await.flush().await;
 
     let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
-    stream_lock.write_all(filesize_content.as_bytes()).await;
-    stream_lock.flush().await;
+    stream.lock().await.write_all(filesize_content.as_bytes()).await;
+    stream.lock().await.flush().await;
 
 
-    stream_lock.write_all(b"\n\n");
-    stream_lock.flush().await;
+    stream.lock().await.write_all(b"\n\n");
+    stream.lock().await.flush().await;
 
     let mut content: Vec<u8> = Vec::new();
     
@@ -55,8 +55,8 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     let mut content_str = String::from_utf8_lossy(&content);
     
 
-    stream_lock.write_all(&content).await;
-    stream_lock.flush().await;
+    stream.lock().await.write_all(&content).await;
+    stream.lock().await.flush().await;
     // stream_lock.write(b"test").await;
 
     println!("test:{}",content_str.as_ref());
@@ -137,20 +137,20 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
 
 
     //writing list of ports to other device
-    let mut main_stream_lock = stream.lock().await;
+    // let mut main_stream_lock = stream.lock().await;
     let folder_info = format!("FOLDER:{}\n",folder_name);
-    let _ = main_stream_lock.write_all(folder_info.as_bytes()).await;
-    main_stream_lock.flush().await;
+    let _ = stream.lock().await.write_all(folder_info.as_bytes()).await;
+    stream.lock().await.flush().await;
     let ip = local_ip().unwrap();
     println!("LOCAL IP:{}",ip);
     for port in available_ports{
         let info = format!("PORT {}\n",port);
-        let _ = main_stream_lock.write_all(info.as_bytes()).await;
-        main_stream_lock.flush().await;
+        let _ = stream.lock().await.write_all(info.as_bytes()).await;
+        stream.lock().await.flush().await;
         println!("TESTING PORT:{}",port);
     }
-    let _ = main_stream_lock.write_all(b"END\n").await;
-    main_stream_lock.flush().await;
+    let _ = stream.lock().await.write_all(b"END\n").await;
+    stream.lock().await.flush().await;
     println!("TEST END");
 
 }
