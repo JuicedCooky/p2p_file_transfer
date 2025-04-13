@@ -19,42 +19,64 @@ impl Client{
         // let mut ip_addr = "172.21.208.1:6142".to_string();
         let mut ip_addr = String::new();
 
-        print!("Enter ip-address:socket:");
-        std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut ip_addr).unwrap();
+        loop {
 
-        if ip_addr.trim().is_empty(){
-            println!("Using default ip-address.");
-            ip_addr = "10.160.3.126:6142".to_string();
-            ip_addr = "10.160.6.186:6142".to_string();
-            ip_addr = "192.168.0.168:6142".to_string();
-        }
-        else{
-            ip_addr = ip_addr.trim().to_string();
-        }
-        let stream = TcpStream::connect(&ip_addr).await;
+            clearscreen::clear().expect("failed to clear screen");
 
-        match stream{
-            
-            Ok(mut stream) =>{
-                println!("Connected to Server: {}",ip_addr);
-                let stream = Arc::new(Mutex::new(stream)); 
+            print!("Enter ip-address:socket:");
+            std::io::stdout().flush().unwrap();
+            ip_addr.clear();
+            std::io::stdin().read_line(&mut ip_addr).unwrap();
 
-                let stream_read_copy = Arc::clone(&stream);  
-                // tokio::spawn(async move{
-                    
-                // });
-                let stream_cloned = Arc::clone(&stream);
-                let options_join = tokio::spawn(async move{
-                    utils::display_options(stream_cloned).await;
-                });
-                options_join.await;
-                Ok(())
+            if ip_addr.trim().is_empty(){
+                println!("Using default ip-address.");
+                ip_addr = "10.160.3.126:6142".to_string();
+                ip_addr = "10.160.6.186:6142".to_string();
+                ip_addr = "192.168.0.168:6142".to_string();
             }
-            Err(e) => {
-                println!("Failed to connect to Server: {}",ip_addr);
-                Err(Box::new(e))
+            else{
+                ip_addr = ip_addr.trim().to_string();
+            }
+            let stream = TcpStream::connect(&ip_addr).await;
+
+            match stream{
+                
+                Ok(mut stream) =>{
+                    println!("Connected to Server: {}",ip_addr);
+                    let stream = Arc::new(Mutex::new(stream)); 
+
+                    let stream_read_copy = Arc::clone(&stream);  
+                    // tokio::spawn(async move{
+                        
+                    // });
+                    let stream_cloned = Arc::clone(&stream);
+                    let options_join = tokio::spawn(async move{
+                        utils::display_options(stream_cloned).await;
+                    });
+                    options_join.await;
+                    return Ok(())
+                }
+                Err(e) => {
+                    println!("Failed to connect to Server: {}",ip_addr);
+
+                    let mut cont_option = String::new();
+
+                    println!("Enter 'c' to try again, other to return to the menu");
+
+                    std::io::stdout().flush().unwrap();
+                    std::io::stdin().read_line(&mut cont_option).unwrap();
+
+                    cont_option = String::from(cont_option.trim());
+
+                    match cont_option.as_str() {
+                        "c" => continue,
+                        _ => return Ok(())
+                    }
+
+                    //Err(Box::new(e))
+                }
             }
         }
+        
     }
 }
