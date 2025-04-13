@@ -32,12 +32,19 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     
     
     stream_lock.write_all(b"FILE\n").await;
+    stream_lock.flush().await;
+
     let filename_content = "FILENAME:".to_string() + file_str + "\n";
     stream_lock.write_all(filename_content.as_bytes()).await;
+    stream_lock.flush().await;
+
     let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
     stream_lock.write_all(filesize_content.as_bytes()).await;
+    stream_lock.flush().await;
+
 
     stream_lock.write_all(b"\n\n");
+    stream_lock.flush().await;
 
     let mut content: Vec<u8> = Vec::new();
     
@@ -49,6 +56,7 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     
 
     stream_lock.write_all(&content).await;
+    stream_lock.flush().await;
     // stream_lock.write(b"test").await;
 
     println!("test:{}",content_str.as_ref());
@@ -115,6 +123,7 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
                         if file_path.is_some(){
                             println!("writing...");
                             write_a_file(write_stream.clone(), file_path).await;
+                            write_stream.lock().await.flush().await;
                         }
                         else{
                             break;
@@ -131,13 +140,17 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
     let mut main_stream_lock = stream.lock().await;
     let folder_info = format!("FOLDER:{}\n",folder_name);
     let _ = main_stream_lock.write_all(folder_info.as_bytes()).await;
+    main_stream_lock.flush().await;
     let ip = local_ip().unwrap();
     println!("LOCAL IP:{}",ip);
     for port in available_ports{
         let info = format!("PORT {}\n",port);
         let _ = main_stream_lock.write_all(info.as_bytes()).await;
+        main_stream_lock.flush().await;
+        println!("TESTING PORT:{}",port);
     }
     let _ = main_stream_lock.write_all(b"END\n").await;
+    main_stream_lock.flush().await;
     println!("TEST END");
 
 }

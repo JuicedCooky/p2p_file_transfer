@@ -87,6 +87,12 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                     loop{
                         line.clear();
                         read_line_from_stream(stream.clone(), &mut line).await;
+
+                        if line.eq("END"){
+                            println!("No more ports");
+                            break;
+                        }
+
                         if !line.is_empty(){
                             println!("Line:{}",line);
                         }
