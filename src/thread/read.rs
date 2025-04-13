@@ -1,5 +1,6 @@
 // pub mod thread;
 
+use bytes::buf;
 use bytes::Buf;
 use bytes::Bytes;
 use rfd::FileDialog;
@@ -222,10 +223,10 @@ pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Op
                         println!("FOLDER PATH:{}",file_path.to_str().unwrap());
                         file = File::create(file_path).await.unwrap();
                     }
-                    drop(buf_reader);
                     let mut buffer = [0u8; 4096];
                     while received < file_size_usize{
-                        let n = stream.read(&mut buffer).await.unwrap();
+                        let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                        let n = buf_reader.read(&mut buffer).await.unwrap();
 
                         if n == 0{
                             break;
@@ -235,7 +236,6 @@ pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Op
 
                         file.write_all(&mut buffer[..n]).await;
                     }
-                    buf_reader = BufReader::new(&mut stream);
                 }
             }
             Err(e) => {
