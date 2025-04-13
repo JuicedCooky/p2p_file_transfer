@@ -26,33 +26,37 @@ mod thread;
 pub async fn main() -> Result<(), Box<dyn Error>> {
     let mut choice = String::new();
     
-    println!("1. Be host device.");
-    println!("2. Be client to connect to host.");
-    print!("Enter choice:");
-    std::io::stdout().flush().unwrap();
+    loop {
 
-    std::io::stdin().read_line(&mut choice).unwrap();
-    choice = String::from(choice.trim());
+        clearscreen::clear().expect("failed to clear screen");
 
-    if "1" == choice
-    {
-        
-        let host = host::Host::new(Some("6142")).await?;
-    }
-    else if "2" == choice
-    {
-        let client = client::Client::new().await?;
-    }
-    else if "3" == choice{
-        let listener = TcpListener::bind(format!("0.0.0.0:6142")).await?;
-        let mut stream = listener.accept().await;
-        // file(&mut stream);
-    }
-    else {
-        println!("ERROR NO CHOICE SPECIFIED");
-    }
+        println!("1. Be host device.");
+        println!("2. Be client to connect to host.");
+        println!("4. Quit application.");
+        print!("Enter choice:");
+        std::io::stdout().flush().unwrap();
 
+        choice.clear();
+        std::io::stdin().read_line(&mut choice).unwrap();
+        choice = String::from(choice.trim());
 
+        match choice.as_str() {
+            "1" => {
+                let host = host::Host::new(Some("6142")).await?;
+            }
+            "2" => {
+                let client = client::Client::new().await?;
+            }
+            "3" => {
+                let listener = TcpListener::bind(format!("0.0.0.0:6142")).await?;
+                let mut stream = listener.accept().await;
+                // file(&mut stream);
+            }
+            "4" => break,
+            _ => continue
+        }
+      
+    }
 
     Ok(())
 }
