@@ -85,7 +85,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                 //for reading multiple files
                 if line.contains("FOLDER"){
                     
-                    let folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
+                    folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
                     let create_location =  save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str(); 
                     println!("TEST MAKING LOCATION:{}",create_location);
                     fs::create_dir(create_location.clone().trim()).await;
