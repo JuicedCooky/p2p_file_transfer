@@ -33,16 +33,19 @@ impl Host {
                     println!("Connection from {}", addr);
                     let stream = Arc::new(Mutex::new(stream));
                     //spawning a thread to handle options
-                    let stream_copy = Arc::clone(&stream);
-                    let options = tokio::spawn(async move{
-                        utils::display_options(stream_copy).await;
-                    });
                     let stream_read_copy = Arc::clone(&stream);
 
                     let read_stream = tokio::spawn(async move{
                         // let mut buffer = String::new();
                         read_from_stream(stream_read_copy,addr.ip().to_string(),None).await;
                     });
+
+                    
+                    let stream_copy = Arc::clone(&stream);
+                    let options = tokio::spawn(async move{
+                        utils::display_options(stream_copy).await;
+                    });
+                    options.await;
                     // let result = options.await;
                     // tokio::spawn(async move{
                     //     let mut buf = [0;10];
