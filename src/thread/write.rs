@@ -1,5 +1,6 @@
 use core::num;
 use std::fs::File;
+use std::net::Shutdown;
 use std::path::PathBuf;
 use std::sync::Arc;
 use local_ip_address::local_ip;
@@ -128,6 +129,10 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
                         else{
                             break;
                         }
+                    }
+                    else if shared_vector_lock.is_empty(){
+                        drop(shared_vector_lock);
+                        break;
                     }
                     drop(shared_vector_lock);
                 }
