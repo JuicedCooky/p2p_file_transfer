@@ -117,9 +117,9 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
                 println!("conn on port {} from {}", port, addr);
                 let write_stream = Arc::new(Mutex::new(sub_stream));
                 loop{
-                    let mut shared_vector = shared_file_vector.lock().await;
-                    if !shared_vector.is_empty(){
-                        let file_path = shared_vector.pop();
+                    let mut shared_vector_lock = shared_file_vector.lock().await;
+                    if !shared_vector_lock.is_empty(){
+                        let file_path = shared_vector_lock.pop();
                         if file_path.is_some(){
                             println!("writing...");
                             write_a_file(write_stream.clone(), file_path).await;
@@ -129,6 +129,7 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
                             break;
                         }
                     }
+                    drop(shared_vector_lock);
                 }
             }   
         }});
