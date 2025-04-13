@@ -226,7 +226,7 @@ pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Op
                     let mut buffer = [0u8; 4096];
                     while received < file_size_usize{
                         let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
-                        let n = buf_reader.read(&mut buffer).await.unwrap();
+                        let n = buf_reader.read(&mut buffer[..max_size]).await.unwrap();
 
                         if n == 0{
                             break;
