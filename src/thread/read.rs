@@ -50,13 +50,11 @@ pub async fn read_line_from_stream(
 }
 
 
-pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, folder_path:Option<String>) -> (){
+pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:String, folder_path:Option<String>) -> (){
 
     let folder_path = folder_path.clone();
     let stream_ip = stream.lock().await.peer_addr().unwrap().ip().to_string();
     // let mut read_lock = stream.lock().await;
-
-    let ip_add = stream.lock().await.local_addr().unwrap();
 
 
     let mut line = String::new();
@@ -95,8 +93,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, folder_path:Option<
                         
                         if line.contains("PORT"){
                             let port = line.strip_prefix("PORT ").unwrap().to_string();
-                            let ip = ip_add.ip().to_string();
-                            let concat_port = ip + ":" + &port; 
+                            let concat_port = outgoing_adder.to_owned() + ":" + &port; 
                             let parsed_port = concat_port.clone();
 
                             println!("Parsed Port:{}",parsed_port.trim());
