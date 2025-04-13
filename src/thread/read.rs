@@ -128,15 +128,16 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
         
                 //reading a single file
                 else if line.contains("FILE"){
+                    let mut lock = stream.lock().await;
+                    let mut buf_reader = BufReader::new(&mut *lock);
                     line.clear();
-                    read_line_from_stream(stream.clone(), &mut line).await;
+                    buf_reader.read_line(&mut line).await;
                     let cloned_line = line.clone();
                     let file_name = cloned_line.strip_prefix("FILENAME:").unwrap().trim();
                     println!("FILENAME:{}", file_name);
 
                     line.clear();
-                    // println!("FILENAME:{}", file_name);
-                    read_line_from_stream(stream.clone(), &mut line).await;
+                    buf_reader.read_line(&mut line).await;
                     let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
                     println!("FILESIZE:{}", file_size);
 
@@ -148,12 +149,14 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                         file = File::create("./".to_string() + file_name).await.unwrap();
                     }
                     else{
-                        file = File::create(folder_path.as_ref().unwrap().to_string() + "/" + file_name).await.unwrap();
+                        let file_path = PathBuf::from(folder_path.as_ref().unwrap().to_string().trim()).join(file_name.trim());
+                        println!("FOLDER PATH:{}",file_path.to_str().unwrap());
+                        file = File::create(file_path).await.unwrap();
                     }
-
                     let mut buffer = [0u8; 4096];
                     while received < file_size_usize{
-                        let n = stream.lock().await.read(&mut buffer).await.unwrap();
+                        let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                        let n = buf_reader.read(&mut buffer[..max_size]).await.unwrap();
 
                         if n == 0{
                             break;
