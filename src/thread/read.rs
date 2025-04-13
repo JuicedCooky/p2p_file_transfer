@@ -85,6 +85,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                     fs::create_dir(save_location.clone().trim()).await;
                     println!("TEST");
                     loop{
+                        println!("test:loop");
                         line.clear();
                         read_line_from_stream(stream.clone(), &mut line).await;
 
