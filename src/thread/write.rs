@@ -32,43 +32,43 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
 
     let mut stream_lock = stream.lock().await;
     
+    // Send type header to host
     stream_lock.write_all(b"FILE\n").await;
     stream_lock.flush().await;
-    //stream.lock().await.flush().await;
-
+   
+    // Send FILENAME header to host 
     let filename_content = "FILENAME:".to_string() + file_str + "\n";
     stream_lock.write_all(filename_content.as_bytes()).await;
     println!("Sent header {}", filename_content);
-    //stream.lock().await.flush().await;
-
+    
+    // Send FILESIZE header to host
     let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
     stream_lock.write_all(filesize_content.as_bytes()).await;
     println!("Sent header {}", filesize_content);
-    //stream.lock().await.flush().await;
-
-
+    
+    // Send new line characters to clear host buffer
     stream_lock.write_all(b"\n\n");
-    //stream.lock().await.flush().await;
+    
 
     stream_lock.flush().await;
 
+    // Read in file data as by to send to host
     let mut content: Vec<u8> = Vec::new();
     
     match fs::read(cloned_file_path).await{
         Ok(result) => {content = result;},
         Err(e) => eprintln!("ERROR:{}",e),
     }
-    let mut content_str = String::from_utf8_lossy(&content);
+    //let mut content_str = String::from_utf8_lossy(&content);
     
-
+    // Send file contents to host as byte data
     stream_lock.write_all(&content).await;
     stream_lock.flush().await;
-    println!("Finished sending file content, sleeping...");
+    //println!("Finished sending file content, sleeping...");
     sleep(Duration::from_secs(1)).await;
-    // stream_lock.write(b"test").await;
-
-    println!("Sent following file contents:");
-    println!("{}",content_str.as_ref());
+ 
+    //println!("Sent following file contents:");
+    //println!("{}",content_str.as_ref());
 }
 
 pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
