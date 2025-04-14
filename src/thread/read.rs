@@ -109,7 +109,6 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                             let parsed_port = concat_port.clone();
 
                             println!("Parsed Port:{}",parsed_port.trim());
-                            let cloned_folder_name = folder_name.clone();
                             let cloned_save_location = Some(save_location.clone());
 
                             tokio::spawn({

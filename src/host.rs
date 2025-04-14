@@ -2,7 +2,7 @@ use std::{error::Error, fs::read, io::Write};
 
 
 use bytes::buf;
-use tokio::{io::{AsyncReadExt, Interest}, net::TcpListener};
+use tokio::{io::{AsyncReadExt, AsyncWriteExt, Interest}, net::TcpListener};
 use local_ip_address::local_ip;
 
 use super::utils;
@@ -30,19 +30,39 @@ impl Host {
             match stream{
                 Ok((mut stream,addr)) => 
                 {
-                    println!("Connection from {}", addr);
-                    let stream = Arc::new(Mutex::new(stream));
-                    //spawning a thread to handle options
-                    let stream_copy = Arc::clone(&stream);
-                    //let options = tokio::spawn(async move{
-                    //    utils::display_options(stream_copy).await;
-                    //});
-                    let stream_read_copy = Arc::clone(&stream);
+                    println!("Requested connection from {}", addr);
+                    println!("Enter 'y' to accept, other to reject");
 
-                    let read_stream = tokio::spawn(async move{
-                        // let mut buffer = String::new();
-                        read_from_stream(stream_read_copy,addr.ip().to_string(),None).await;
-                    });
+                    let mut connect_option = String::new();
+
+                    std::io::stdout().flush().unwrap();
+                    std::io::stdin().read_line(&mut connect_option).unwrap();
+
+                    connect_option = String::from(connect_option.trim());
+
+                    match connect_option.as_str() {
+                        "y" => {
+
+                            stream.write_all(b"Accepted\n").await?;
+                            
+                            let stream = Arc::new(Mutex::new(stream));
+                   
+                            let stream_read_copy = Arc::clone(&stream);
+
+                            let read_stream = tokio::spawn(async move{
+                                // let mut buffer = String::new();
+                                read_from_stream(stream_read_copy,addr.ip().to_string(),None).await;
+                            });
+                        }
+                        _=> {
+                            stream.write_all(b"Rejected\n").await?;
+                            stream.shutdown().await?;
+
+                            drop(stream);
+                            continue;
+                        }
+                    }
+
                     // let result = options.await;
                     // tokio::spawn(async move{
                     //     let mut buf = [0;10];
