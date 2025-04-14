@@ -85,20 +85,17 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
                     
                     let folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
                     let save_location =  save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str(); 
-                    println!("TEST MAKING LOCATION:{}",save_location);
+                    println!("Received Folder Location:{}",save_location);
                     fs::create_dir(save_location.clone().trim()).await;
-                    //println!("TEST");
-                    let mut folder_lock = stream.lock().await;
-
-                    let mut buf_reader = BufReader::new(&mut *folder_lock);
+                
+                    line.clear();
                     loop{
                         println!("test:loop");
                         line.clear();
-                        buf_reader.read_line(&mut line).await;
+                        reader.read_line(&mut line).await;
 
                         if line.eq("END"){
                             println!("No more ports");
-                            drop(folder_lock);
                             break;
                         }
 
