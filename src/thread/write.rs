@@ -168,13 +168,11 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
             let info = format!("PORT {}\n",port);
             let _ = stream.lock().await.write_all(info.as_bytes()).await;
             stream.lock().await.flush().await;
-            println!("TESTING PORT:{}",port);
         }
         
         // Tell host to stop listening for ports
         let _  = stream.lock().await.write_all(b"END\n").await;
         stream.lock().await.flush().await;
-        println!("END OF PORT TESTING");
     }
 
 }

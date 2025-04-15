@@ -65,6 +65,7 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         } else if send_type == "FOLDER" {
             println!("Sending type message ''FOLDER'' to host");
             lock.write_all(b"FOLDER\n").await;
+            // return;
         }
     }
    
@@ -85,10 +86,14 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
             // Free lock for writing stream
             drop(lock);
             write_a_file_to_stream(stream_copy, None).await;
+            println!("DONE");
+            return;
         } else if init_message == "START FOLDER" {
             // Free lock for writing stream
             drop(lock);
             write_a_folder_to_stream(stream_copy).await;
+            println!("DONE");
+            return;
         } else {
             return;
         }

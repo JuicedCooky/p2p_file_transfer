@@ -136,7 +136,7 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                 line.clear();
                 reader.read_line(&mut line).await;
 
-                if line.eq("END"){
+                if line.contains("END"){
                     println!("All ports assigned");
                     break;
                 }
