@@ -90,7 +90,7 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         } else if init_message == "START FOLDER" {
             // Free lock for writing stream
             drop(lock);
-            write_a_folder_to_stream(stream_copy).await;
+            write_a_folder_to_stream(stream_copy,None,None).await;
             return;
         } else {
             return;

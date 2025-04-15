@@ -10,6 +10,8 @@ use rfd::FileDialog;
 use tokio::fs::{self, metadata};
 use tokio::io::AsyncWriteExt;
 use crate::main;
+use async_recursion::async_recursion;
+
 
 pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>, print_file: bool) -> () {
     
@@ -68,8 +70,8 @@ pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<
     sleep(Duration::from_secs(1)).await;
 }
 
-pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
-
+#[async_recursion]
+pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>, folder_path: Option<PathBuf>, parent_folder: Option<String>) -> () {
     // Create ports
     let num_of_ports = 10;
     let mut available_ports:Vec<u16> = vec![];
@@ -77,25 +79,48 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
 
     // Intialize variables to store information about selected folder
     let mut folder_name: &str = "";
+    // if folder_path.is_some(){
+    //     folder_name = folder_path.as_ref().unwrap().as_str();
+    // }
     let clone_path: PathBuf;
 
     // Select and open folder
-    if let Some(file_path) = FileDialog::new().set_directory("/".to_string()).pick_folder(){
+    let mut folder_selection: Option<PathBuf>;
+    if(folder_path.as_ref().is_none()){
+        folder_selection = FileDialog::new().set_directory("/".to_string()).pick_folder();
+    }
+    else {
+        folder_selection = Some(folder_path.clone().unwrap());
+    }
+    if let Some(file_path) = folder_selection{
         //println!("folder: {}",file_path.display());
         clone_path = file_path.clone();
         folder_name = clone_path.file_name().unwrap().to_str().unwrap();
         
         println!("\nSelected folder {}\n", folder_name);
         // Push the files in the directory into the file vectors
-        if let Ok(mut files) = fs::read_dir(file_path).await{
+        if let Ok(mut files) = fs::read_dir(file_path.clone()).await{
             let mut i = 1;
             loop{
                 let result = files.next_entry().await;
                 match result{
                     Ok(file) => {
                         if file.as_ref().is_some(){
-                            println!("Sending file {:?} to host", file.as_ref().unwrap().file_name());
-                            file_vector.push(file.as_ref().unwrap().path());                        
+                            if file.as_ref().unwrap().file_type().await.unwrap().is_file(){   
+                                println!("Sending file {:?} to host", file.as_ref().unwrap().file_name());
+                                file_vector.push(file.as_ref().unwrap().path());              
+                            }
+                            else if file.as_ref().unwrap().file_type().await.unwrap().is_dir(){
+                                let mut parent: String = file_path.clone().file_name().unwrap().to_str().unwrap().to_string();
+                                if parent_folder.is_some(){
+                                    parent = parent_folder.clone().unwrap() + "\\" + parent.as_str();
+                                }
+                                write_a_folder_to_stream(
+                                    stream.clone(), 
+                                    Some(file_path.clone().join(file.as_ref().unwrap().path())), 
+                                    Some(parent)
+                                ).await;
+                            }
                         }
                         else{
                             break;
@@ -161,8 +186,14 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
         stream.lock().await.flush();
 
         // Send Folder name header to host
-        let folder_info = format!("FOLDER:{}\n",folder_name);
-        let _ = stream.lock().await.write_all(folder_info.as_bytes()).await;
+        if parent_folder.is_some(){
+            let folder_info = format!("FOLDER:{}\n",parent_folder.unwrap() + "\\" +folder_name);
+            let _ = stream.lock().await.write_all(folder_info.as_bytes()).await;
+        }
+        else{
+            let folder_info = format!("FOLDER:{}\n",folder_name);
+            let _ = stream.lock().await.write_all(folder_info.as_bytes()).await;
+        }
         
         // Writing list of ports to host
         for port in available_ports{
@@ -172,8 +203,15 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
         }
         
         // Tell host to stop listening for ports
-        let _  = stream.lock().await.write_all(b"END\n").await;
-        stream.lock().await.flush().await;
+        if folder_path.as_ref().is_some(){
+            let _  = stream.lock().await.write_all(b"END FOLDER\n").await;
+            stream.lock().await.flush().await;
+        }
+        else if folder_path.as_ref().is_none(){
+            let _  = stream.lock().await.write_all(b"END\n").await;
+            stream.lock().await.flush().await;
+        }
+        
     }
 
 }
@@ -237,6 +275,8 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     //println!("Sent following file contents:");
     //println!("{}",content_str.as_ref());
 }
+
+
 
 // Legacy
 pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){

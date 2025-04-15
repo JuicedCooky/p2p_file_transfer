@@ -138,7 +138,6 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                 
             },
             "FOLDER" => {
-
                 if folder_save_location.as_mut_os_str().is_empty() {
                     folder_save_location = tokio::task::spawn_blocking(|| {
                         FileDialog::new()
