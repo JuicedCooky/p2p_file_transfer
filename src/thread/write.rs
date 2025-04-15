@@ -9,7 +9,6 @@ use tokio::time::{Duration, sleep};
 use rfd::FileDialog;
 use tokio::fs::{self, metadata};
 use tokio::io::AsyncWriteExt;
-
 use crate::main;
 
 pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) -> () {
@@ -116,7 +115,13 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
         }
 
         println!("File count is {}", file_count);
-
+    
+        for _ in 0..file_vector.len() {
+            let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
+            let port = listener.local_addr().unwrap().port();
+            available_ports.push(port);
+        }
+              
         // Initailize mutex for shared file
         let shared_file_vector = Arc::new(Mutex::new(file_vector));
 
@@ -147,9 +152,9 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
                         }
                     }   
                 }
-            });
+            });      
         }
-
+        
         // Send init message to host
         let _ = stream.lock().await.write_all(b"Init\n");
         stream.lock().await.flush();
@@ -157,7 +162,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
         // Send Folder name header to host
         let folder_info = format!("FOLDER:{}\n",folder_name);
         let _ = stream.lock().await.write_all(folder_info.as_bytes()).await;
-
+        
         // Writing list of ports to host
         for port in available_ports{
             let info = format!("PORT {}\n",port);
@@ -165,7 +170,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
             stream.lock().await.flush().await;
             println!("TESTING PORT:{}",port);
         }
-
+        
         // Tell host to stop listening for ports
         let _  = stream.lock().await.write_all(b"END\n").await;
         stream.lock().await.flush().await;
@@ -174,6 +179,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
 
 }
 
+// Legacy
 pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) -> (){
 
     let file_path:PathBuf;
@@ -233,6 +239,7 @@ pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) 
     //println!("{}",content_str.as_ref());
 }
 
+// Legacy
 pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
     let num_of_ports = 10;
     //creating ports
@@ -325,4 +332,3 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
     println!("TEST END");
 
 }
-
