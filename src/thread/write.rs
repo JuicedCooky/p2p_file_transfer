@@ -12,6 +12,56 @@ use tokio::io::AsyncWriteExt;
 
 use crate::main;
 
+pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
+    
+    // Select file to write to host
+    let file_path = FileDialog::new().set_directory("/".to_string()).pick_file().unwrap();
+
+    println!("{:?}", file_path);
+    let cloned_file_path = file_path.clone(); 
+    let file_str = cloned_file_path.file_name().unwrap().to_str().unwrap();
+
+    let file_size = metadata(file_path).await.unwrap().len();
+
+    let mut stream_lock = stream.lock().await;
+
+    println!("Acquired writer lock!");
+
+    // Send init message to host
+    stream_lock.write_all(b"Init\n").await;
+    stream_lock.flush().await;
+
+    // Send FILENAME header to host 
+    let filename_content = "FILENAME:".to_string() + file_str + "\n";
+    stream_lock.write_all(filename_content.as_bytes()).await;
+    println!("Sent header {}", filename_content);
+
+    // Send FILESIZE header to host
+    let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
+    stream_lock.write_all(filesize_content.as_bytes()).await;
+    println!("Sent header {}", filesize_content);
+
+    stream_lock.flush().await;
+
+    // Read in file data as by to send to host
+    let mut content: Vec<u8> = Vec::new();
+    
+    match fs::read(cloned_file_path).await{
+        Ok(result) => {content = result;},
+        Err(e) => eprintln!("ERROR:{}",e),
+    }
+
+    // Send file contents to host as byte data
+    stream_lock.write_all(&content).await;
+    stream_lock.flush().await;
+
+    sleep(Duration::from_secs(1)).await;
+}
+
+pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
+    
+}
+
 pub async fn write_a_file(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) -> (){
 
     let file_path:PathBuf;
@@ -143,8 +193,6 @@ pub async fn write_a_folder(stream: Arc<Mutex<TcpStream>>) -> (){
             }   
         }});
     }
-
-
 
     //writing list of ports to other device
     // let mut main_stream_lock = stream.lock().await;

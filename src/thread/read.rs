@@ -52,6 +52,87 @@ pub async fn read_line_from_stream(
     Ok(total_read)
 }
 
+pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, save_location: PathBuf) -> () {
+
+    // Print IP address as test
+    let stream_ip = stream.lock().await.peer_addr().unwrap().ip().to_string();
+    let mut line = String::new();
+    println!("IP TEST:{}",stream_ip);
+
+    println!("Saving file to location {:?}", save_location);
+
+    // Initialize stream lock and buffer reader to read data from client
+    let mut stream_lock = stream.lock().await;
+    let mut reader = BufReader::new(&mut *stream_lock);
+
+    println!("Acquired reader lock");
+
+    match reader.read_line(&mut line).await { 
+        Ok(0) =>{
+            println!("CONNECTION CLOSED ABRUPTLY");
+            return;
+        },
+        Ok(_) => { 
+
+            println!("Init message s {}", line);
+
+            // Clear line buffer
+            line.clear(); 
+           
+            // Get FILENAME header
+            reader.read_line(&mut line).await;
+            let header_line = line.clone();
+            println!("Received raw line {}", header_line);
+            let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
+            //println!("FILENAME:{}", file_name);
+            
+            // Clear line buffer
+            line.clear(); 
+
+            // Get FILESIZE header
+            reader.read_line(&mut line).await;
+            println!("Received raw line {}", line);
+            let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
+            //println!("FILESIZE:{}", file_size);
+
+            // Prepare to receive file data as byte data
+            let mut received: usize = 0;
+            let file_size_usize = file_size.parse::<usize>().unwrap();
+            
+            let file_path = save_location.join(file_name);
+            //println!("Writing to file path: {}", file_path.to_string_lossy());
+            let mut file = File::create(file_path).await.unwrap();
+
+            line.clear();
+            let mut buffer = [0u8; 4096];
+            println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
+
+            while received < file_size_usize{
+                let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                let n = reader.read(&mut buffer[..max_size]).await.unwrap();
+
+                //println!("Read {} bytes: {:?}", n, &buffer[..n]);
+
+                if n == 0{
+                    break;
+                }
+
+                received += n;
+
+                println!("Received {}/{} bytes", received, file_size_usize);
+
+                file.write_all(&mut buffer[..n]).await;
+            }
+
+        },
+        Err(e) => {
+            println!("ERROR:{}",e);
+            return;
+        }
+
+    }
+
+}
 
 pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:String, folder_path:Option<String>) -> (){
 
@@ -171,6 +252,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
         }
     }
 }
+
 pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Option<String>){
     let folder_path = folder_path.clone();
     // let mut read_lock = stream.lock().await;
