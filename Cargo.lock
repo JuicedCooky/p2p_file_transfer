@@ -937,6 +937,7 @@ dependencies = [
 name = "p2p"
 version = "0.1.0"
 dependencies = [
+ "async-recursion",
  "bytes",
  "clearscreen",
  "get_if_addrs",
