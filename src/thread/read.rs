@@ -23,35 +23,6 @@ use tokio::io::Interest;
 
 use crate::thread::read;
 
-
-pub async fn read_line_from_stream(
-    stream: Arc<Mutex<TcpStream>>,
-    line_buf: &mut String
-) -> tokio::io::Result<usize> {
-    let mut buffer = [0u8; 1024];
-    let mut total_read = 0;
-
-    loop {
-        let n = stream.lock().await.read(&mut buffer).await?;
-
-        if n == 0 {
-            break; // connection closed
-        }
-
-        total_read += n;
-
-        let chunk = String::from_utf8_lossy(&buffer[..n]);
-        if let Some(pos) = chunk.find('\n') {
-            line_buf.push_str(&chunk[..=pos]);
-            break;
-        } else {
-            line_buf.push_str(&chunk);
-        }
-    }
-
-    Ok(total_read)
-}
-
 pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_location: PathBuf) -> () {
 
     // Print IP address as test
@@ -196,6 +167,73 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
 
 }
 
+pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_location: PathBuf) {
+    println!("Connected: local = {}, peer = {}", stream.local_addr().unwrap(), stream.peer_addr().unwrap());
+    println!("Saving file to location {:?}", file_save_location);
+
+    let mut reader = BufReader::new(&mut stream);
+    let mut line = String::new();
+
+    match reader.read_line(&mut line).await {
+        Ok(0) => {
+            println!("CONNECTION CLOSED ABRUPTLY");
+            return;
+        }
+        Ok(_) => {
+            println!("Init message is {}", line);
+            line.clear();
+
+            reader.read_line(&mut line).await;
+            let header_line = line.clone();
+            println!("Received raw line {}", header_line);
+            let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
+            line.clear();
+
+            reader.read_line(&mut line).await;
+            println!("Received raw line {}", line);
+            let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
+            let file_size_usize = file_size.parse::<usize>().unwrap();
+
+            let file_path = file_save_location.join(file_name);
+            let mut file = File::create(file_path).await.unwrap();
+
+            let mut buffer = [0u8; 4096];
+            let mut received = 0;
+            println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
+
+            while received < file_size_usize {
+                let max_size = std::cmp::min(file_size_usize - received, buffer.len());
+                let n = reader.read(&mut buffer[..max_size]).await.unwrap();
+
+                if n == 0 {
+                    break;
+                }
+
+                received += n;
+                println!("Received {}/{} bytes", received, file_size_usize);
+
+                file.write_all(&buffer[..n]).await.unwrap();
+            }
+        }
+        Err(e) => {
+            println!("ERROR: {}", e);
+        }
+    }
+}
+
+
+pub async fn parse_file_per_port_stream(address: String, folder_path: String) {
+    println!("PARSING_PORT:{}",address.trim());
+    match TcpStream::connect(address.trim()).await {
+        Ok(stream) => {
+            println!("Connected to port {:?}", stream);
+            read_file_from_stream_direct(stream, PathBuf::from(folder_path)).await;
+        },
+        Err(e) => {println!("Failed to connect to port:{}",e);}
+    }
+}
+
+// Legacy
 pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:String, folder_path:Option<String>) -> (){
 
     let folder_path = folder_path.clone();
@@ -315,6 +353,7 @@ pub async fn read_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_adder:Stri
     }
 }
 
+// Legacy
 pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Option<String>){
     let folder_path = folder_path.clone();
     // let mut read_lock = stream.lock().await;
@@ -385,74 +424,9 @@ pub async fn read_file_from_stream_no_async(mut stream: TcpStream,folder_path:Op
             }
         }
     }
-}  
-
-pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_location: PathBuf) {
-    println!("Connected: local = {}, peer = {}", stream.local_addr().unwrap(), stream.peer_addr().unwrap());
-    println!("Saving file to location {:?}", file_save_location);
-
-    let mut reader = BufReader::new(&mut stream);
-    let mut line = String::new();
-
-    match reader.read_line(&mut line).await {
-        Ok(0) => {
-            println!("CONNECTION CLOSED ABRUPTLY");
-            return;
-        }
-        Ok(_) => {
-            println!("Init message is {}", line);
-            line.clear();
-
-            reader.read_line(&mut line).await;
-            let header_line = line.clone();
-            println!("Received raw line {}", header_line);
-            let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
-            line.clear();
-
-            reader.read_line(&mut line).await;
-            println!("Received raw line {}", line);
-            let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
-            let file_size_usize = file_size.parse::<usize>().unwrap();
-
-            let file_path = file_save_location.join(file_name);
-            let mut file = File::create(file_path).await.unwrap();
-
-            let mut buffer = [0u8; 4096];
-            let mut received = 0;
-            println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
-
-            while received < file_size_usize {
-                let max_size = std::cmp::min(file_size_usize - received, buffer.len());
-                let n = reader.read(&mut buffer[..max_size]).await.unwrap();
-
-                if n == 0 {
-                    break;
-                }
-
-                received += n;
-                println!("Received {}/{} bytes", received, file_size_usize);
-
-                file.write_all(&buffer[..n]).await.unwrap();
-            }
-        }
-        Err(e) => {
-            println!("ERROR: {}", e);
-        }
-    }
 }
 
-
-pub async fn parse_file_per_port_stream(address: String, folder_path: String) {
-    println!("PARSING_PORT:{}",address.trim());
-    match TcpStream::connect(address.trim()).await {
-        Ok(stream) => {
-            println!("Connected to port {:?}", stream);
-            read_file_from_stream_direct(stream, PathBuf::from(folder_path)).await;
-        },
-        Err(e) => {println!("Failed to connect to port:{}",e);}
-    }
-}
-
+// Legacy
 pub async fn parse_file_per_port(address: String, folder_path:Option<String>) {
     println!("PARSING_PORT:{}",address.trim());
     // print
@@ -465,4 +439,33 @@ pub async fn parse_file_per_port(address: String, folder_path:Option<String>) {
         }
         Err(e) => {println!("Failed to connect to port:{}",e);}
     }
+}
+
+// Legacy
+pub async fn read_line_from_stream(
+    stream: Arc<Mutex<TcpStream>>,
+    line_buf: &mut String
+) -> tokio::io::Result<usize> {
+    let mut buffer = [0u8; 1024];
+    let mut total_read = 0;
+
+    loop {
+        let n = stream.lock().await.read(&mut buffer).await?;
+
+        if n == 0 {
+            break; // connection closed
+        }
+
+        total_read += n;
+
+        let chunk = String::from_utf8_lossy(&buffer[..n]);
+        if let Some(pos) = chunk.find('\n') {
+            line_buf.push_str(&chunk[..=pos]);
+            break;
+        } else {
+            line_buf.push_str(&chunk);
+        }
+    }
+
+    Ok(total_read)
 }
