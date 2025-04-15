@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::path::PathBuf;
 use rfd::FileDialog;
 use crate::thread::write::write_a_file_to_stream;
+use crate::thread::write::write_a_folder_to_stream;
 use crate::thread::write::{write_a_file, write_a_folder};
 
 pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
@@ -34,7 +35,9 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
             }
             "2" => {
                 let cloned_stream = Arc::clone(&stream);
-                write_a_folder(cloned_stream).await;
+                let send_type = String::from("FOLDER");
+                handle_sender_session(&stream, cloned_stream, send_type).await;
+                //write_a_folder(cloned_stream).await;
             }
             "3" => {
                 // Acquire lock, and send disconnect message to host
@@ -81,9 +84,11 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         if init_message == "START FILE" {
             // Free lock for writing stream
             drop(lock);
-            write_a_file_to_stream(stream_copy).await;
+            write_a_file_to_stream(stream_copy, None).await;
         } else if init_message == "START FOLDER" {
-            // initalize write procedure for file
+            // Free lock for writing stream
+            drop(lock);
+            write_a_folder_to_stream(stream_copy).await;
         } else {
             return;
         }

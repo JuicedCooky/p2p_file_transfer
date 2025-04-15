@@ -14,7 +14,7 @@ use tokio::net::TcpStream;
 use rfd::FileDialog;
 use std::path::PathBuf;
 use std::io::stdout;
-use crate::thread::read::{self, read_file_from_stream, read_from_stream};
+use crate::thread::read::{self, read_file_from_stream, read_folder_from_stream, read_from_stream};
 
 pub struct Host{}
 
@@ -95,6 +95,8 @@ impl Host {
 pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_base: Arc<Mutex<TcpStream>>, outgoing_adder:String) -> bool {
 
     let mut file_save_location = PathBuf::new();
+
+    let mut folder_save_location = PathBuf::new();
         
     // Receive message of send_type to be sent
     loop {
@@ -115,12 +117,15 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
             "FILE" => {
 
                 if file_save_location.as_mut_os_str().is_empty() {
-                    file_save_location = FileDialog::new()
-                    .set_title("Choose save location")
-                    .set_directory("/"
-                    .to_string())
-                    .pick_folder()
-                    .unwrap();
+                    file_save_location = tokio::task::spawn_blocking(|| {
+                        FileDialog::new()
+                            .set_title("Choose save location")
+                            .set_directory("/".to_string())
+                            .pick_folder()
+                    }).await.unwrap().unwrap_or_else(|| {
+                        println!("User cancelled folder selection.");
+                        std::process::exit(0);
+                    });
                 }
                 
                 lock.write_all(b"START FILE\n").await;
@@ -134,8 +139,28 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                 
             },
             "FOLDER" => {
+
+                if folder_save_location.as_mut_os_str().is_empty() {
+                    folder_save_location = tokio::task::spawn_blocking(|| {
+                        FileDialog::new()
+                            .set_title("Choose save location")
+                            .set_directory("/".to_string())
+                            .pick_folder()
+                    }).await.unwrap().unwrap_or_else(|| {
+                        println!("User cancelled folder selection.");
+                        std::process::exit(0);
+                    });
+                } 
+
                 lock.write_all(b"START FOLDER\n").await;
-                // initalize read procedure for folder
+                
+                // Free lock for reading stream
+                drop(lock);
+
+                let stream_clone = Arc::clone(&stream_clone_base);
+
+                read_folder_from_stream(stream_clone, outgoing_adder.clone(), folder_save_location.clone()).await;
+    
             },
             "DISCONNECT" => {
                 println!("Client disconnected");
