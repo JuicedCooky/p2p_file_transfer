@@ -120,7 +120,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
         // Initailize mutex for shared file
         let shared_file_vector = Arc::new(Mutex::new(file_vector));
 
-        for i in 0..file_count{
+        for i in 0..file_count+1{
             let sub_listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
             let port = sub_listener.local_addr().unwrap().port();
             available_ports.push(port);
