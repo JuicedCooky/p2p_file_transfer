@@ -27,15 +27,15 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
 
     // Print IP address as test
     let stream_ip = stream.lock().await.peer_addr().unwrap().ip().to_string();
-    println!("IP TEST:{}",stream_ip);
+    //println!("IP TEST:{}",stream_ip);
 
-    println!("Saving file to location {:?}", file_save_location);
+    //println!("Saving file to location {:?}", file_save_location);
 
     // Initialize stream lock and buffer reader to read data from client
     let mut stream_lock = stream.lock().await;
     let mut reader = BufReader::new(&mut *stream_lock);
 
-    println!("Acquired reader lock");
+    //println!("Acquired reader lock");
 
     let mut line = String::new();
 
@@ -46,7 +46,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
         },
         Ok(_) => { 
 
-            println!("Init message is {}", line);
+            //println!("Init message is {}", line);
 
             // Clear line buffer
             line.clear(); 
@@ -54,7 +54,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
             // Get FILENAME header
             reader.read_line(&mut line).await;
             let header_line = line.clone();
-            println!("Received raw line {}", header_line);
+            //println!("Received raw line {}", header_line);
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
             //println!("FILENAME:{}", file_name);
             
@@ -63,7 +63,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
 
             // Get FILESIZE header
             reader.read_line(&mut line).await;
-            println!("Received raw line {}", line);
+            //println!("Received raw line {}", line);
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
             //println!("FILESIZE:{}", file_size);
 
@@ -77,7 +77,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
 
             line.clear();
             let mut buffer = [0u8; 4096];
-            println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
+            //println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
 
             while received < file_size_usize{
                 let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
@@ -91,10 +91,12 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
 
                 received += n;
 
-                println!("Received {}/{} bytes", received, file_size_usize);
+                //println!("Received {}/{} bytes", received, file_size_usize);
 
                 file.write_all(&mut buffer[..n]).await;
             }
+
+            println!("\nReceived file named {} of size {} bytes\n", file_name, file_size_usize);
 
         },
         Err(e) => {
@@ -116,7 +118,7 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
 
     match reader.read_line(&mut line).await {
         Ok(0) =>{
-            println!("CONNECTION CLOSED ABRUPTLY");
+            // println!("CONNECTION CLOSED ABRUPTLY");
             return;
         },
         Ok(_) => {
@@ -126,8 +128,9 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
 
             // Get Folder name header
             let folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
-            let save_location =  folder_save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str(); 
-            println!("Received Folder Location:{}",save_location);
+            let save_location =  folder_save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str();
+            println!("\nReceiving folder {}", folder_name); 
+            //println!("Received Folder Location:{}",save_location);
             fs::create_dir(save_location.clone().trim()).await;
 
             // Parse list of available ports sent by the client
@@ -137,17 +140,17 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                 reader.read_line(&mut line).await;
 
                 if line.contains("END"){
-                    println!("All ports assigned");
+                    //println!("All ports assigned");
                     break;
                 }
 
                 if line.contains("PORT"){ 
                     // Parse value of port
-                    println!("Received {}", line);
+                    //println!("Received {}", line);
                     let port = line.strip_prefix("PORT ").unwrap().to_string();
                     let concat_port = outgoing_adder.to_owned() + ":" + &port; 
                     let parsed_port = concat_port.clone();
-                    println!("Parsed Port:{}",parsed_port.trim());
+                    //println!("Parsed Port:{}",parsed_port.trim());
 
                     let cloned_save_location = save_location.clone().trim().to_string();
                     tokio::spawn({
@@ -168,29 +171,29 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
 }
 
 pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_location: PathBuf) {
-    println!("Connected: local = {}, peer = {}", stream.local_addr().unwrap(), stream.peer_addr().unwrap());
-    println!("Saving file to location {:?}", file_save_location);
+    //println!("Connected: local = {}, peer = {}", stream.local_addr().unwrap(), stream.peer_addr().unwrap());
+    //println!("Saving file to location {:?}", file_save_location);
 
     let mut reader = BufReader::new(&mut stream);
     let mut line = String::new();
 
     match reader.read_line(&mut line).await {
         Ok(0) => {
-            println!("CONNECTION CLOSED ABRUPTLY");
+            //println!("CONNECTION CLOSED ABRUPTLY");
             return;
         }
         Ok(_) => {
-            println!("Init message is {}", line);
+            //println!("Init message is {}", line);
             line.clear();
 
             reader.read_line(&mut line).await;
             let header_line = line.clone();
-            println!("Received raw line {}", header_line);
+            //println!("Received raw line {}", header_line);
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
             line.clear();
 
             reader.read_line(&mut line).await;
-            println!("Received raw line {}", line);
+            //println!("Received raw line {}", line);
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
             let file_size_usize = file_size.parse::<usize>().unwrap();
 
@@ -199,7 +202,7 @@ pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_locat
 
             let mut buffer = [0u8; 4096];
             let mut received = 0;
-            println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
+            //println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
 
             while received < file_size_usize {
                 let max_size = std::cmp::min(file_size_usize - received, buffer.len());
@@ -210,10 +213,12 @@ pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_locat
                 }
 
                 received += n;
-                println!("Received {}/{} bytes", received, file_size_usize);
+                //println!("Received {}/{} bytes", received, file_size_usize);
 
                 file.write_all(&buffer[..n]).await.unwrap();
             }
+
+            println!("Received file named: {} of size {} bytes", file_name, file_size_usize);
         }
         Err(e) => {
             println!("ERROR: {}", e);
@@ -223,10 +228,10 @@ pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_locat
 
 
 pub async fn parse_file_per_port_stream(address: String, folder_path: String) {
-    println!("PARSING_PORT:{}",address.trim());
+    //println!("PARSING_PORT:{}",address.trim());
     match TcpStream::connect(address.trim()).await {
         Ok(stream) => {
-            println!("Connected to port {:?}", stream);
+            //println!("Connected to port {:?}", stream);
             read_file_from_stream_direct(stream, PathBuf::from(folder_path)).await;
         },
         Err(e) => {println!("Failed to connect to port:{}",e);}

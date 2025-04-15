@@ -11,7 +11,7 @@ use tokio::fs::{self, metadata};
 use tokio::io::AsyncWriteExt;
 use crate::main;
 
-pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>) -> () {
+pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<PathBuf>, print_file: bool) -> () {
     
     let file_path:PathBuf;
 
@@ -23,7 +23,7 @@ pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<
         file_path = path.unwrap();
     }
    
-    println!("{:?}", file_path);
+    //println!("{:?}", file_path);
     let cloned_file_path = file_path.clone(); 
     let file_str = cloned_file_path.file_name().unwrap().to_str().unwrap();
 
@@ -31,8 +31,12 @@ pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<
 
     let mut stream_lock = stream.lock().await;
 
-    println!("Acquired writer lock!");
+    //println!("Acquired writer lock!");
 
+    if print_file {
+        println!("\nSending file {} to client\n", file_str);
+    }
+    
     // Send init message to host
     stream_lock.write_all(b"Init\n").await;
     stream_lock.flush().await;
@@ -40,12 +44,12 @@ pub async fn write_a_file_to_stream(stream: Arc<Mutex<TcpStream>>, path: Option<
     // Send FILENAME header to host 
     let filename_content = "FILENAME:".to_string() + file_str + "\n";
     stream_lock.write_all(filename_content.as_bytes()).await;
-    println!("Sent header {}", filename_content);
+    //println!("Sent header {}", filename_content);
 
     // Send FILESIZE header to host
     let filesize_content = "FILESIZE:".to_string()  + &file_size.to_string() + "\n";
     stream_lock.write_all(filesize_content.as_bytes()).await;
-    println!("Sent header {}", filesize_content);
+    //println!("Sent header {}", filesize_content);
 
     stream_lock.flush().await;
 
@@ -77,10 +81,11 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
 
     // Select and open folder
     if let Some(file_path) = FileDialog::new().set_directory("/".to_string()).pick_folder(){
-        println!("folder: {}",file_path.display());
+        //println!("folder: {}",file_path.display());
         clone_path = file_path.clone();
         folder_name = clone_path.file_name().unwrap().to_str().unwrap();
         
+        println!("\nSelected folder {}\n", folder_name);
         // Push the files in the directory into the file vectors
         if let Ok(mut files) = fs::read_dir(file_path).await{
             let mut i = 1;
@@ -89,7 +94,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
                 match result{
                     Ok(file) => {
                         if file.as_ref().is_some(){
-                            println!("File #{} : {:?}",i,file.as_ref().unwrap().file_name());
+                            println!("Sending file {:?} to host", file.as_ref().unwrap().file_name());
                             file_vector.push(file.as_ref().unwrap().path());                        
                         }
                         else{
@@ -107,6 +112,8 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
             println!("Folder not found");
         }
 
+        println!();
+
         // Get the number of files in the folder
         let file_count = file_vector.len();
         if file_count == 0 {
@@ -114,14 +121,8 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
             return;
         }
 
-        println!("File count is {}", file_count);
-    
-        // for _ in 0..file_vector.len() {
-        //     let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
-        //     let port = listener.local_addr().unwrap().port();
-        //     available_ports.push(port);
-        // }
-              
+        //println!("File count is {}", file_count);
+            
         // Initailize mutex for shared file
         let shared_file_vector = Arc::new(Mutex::new(file_vector));
 
@@ -134,7 +135,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
                 let shared_file_vector = Arc::clone(&shared_file_vector);
                 async move{
                     if let Ok((sub_stream, addr)) = sub_listener.accept().await {
-                        println!("conn on port {} from {}", port, addr);
+                        //println!("conn on port {} from {}", port, addr);
                         let write_stream = Arc::new(Mutex::new(sub_stream));
                         loop {
                             let file_path = {
@@ -143,8 +144,8 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
                             };
                         
                             if let Some(path) = file_path {
-                                println!("writing...");
-                                write_a_file_to_stream(write_stream.clone(), Some(path)).await;
+                                //println!("writing...");
+                                write_a_file_to_stream(write_stream.clone(), Some(path), false).await;
                                 write_stream.lock().await.flush().await;
                             } else {
                                 break;

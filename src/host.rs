@@ -38,10 +38,9 @@ impl Host {
                 Ok((mut stream,addr)) => 
                 {
                     println!("Requested connection from {}", addr);
-                    println!("Enter 'y' to accept, other to reject");
+                    print!("Enter 'y' to accept, other to reject:");
 
                     let mut connect_option = String::new();
-
                     std::io::stdout().flush().unwrap();
                     std::io::stdin().read_line(&mut connect_option).unwrap();
 
@@ -163,7 +162,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
     
             },
             "DISCONNECT" => {
-                println!("Client disconnected");
+                println!("\nClient disconnected");
                 break;
             },
             _ => {
@@ -176,7 +175,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
 
     let mut cont = String::new();
 
-    println!("Would you like to continue as host? Enter 'y' for yes, other for no");
+    print!("Would you like to continue as host? Enter 'y' for yes, other for no:");
     std::io::stdout().flush().unwrap();
     std::io::stdin().read_line(&mut cont).unwrap();
 

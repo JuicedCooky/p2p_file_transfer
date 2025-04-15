@@ -15,15 +15,15 @@ use crate::thread::write::{write_a_file, write_a_folder};
 pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
     // let mut file = File::create_new("");
     loop {
-        let mut choice = String::new();
         println!("What would you like to do?");
         println!("1. Select File to send to host");
         println!("2. Select Folder to send to host");
         println!("3. Disconnect from host");
         print!("Enter choice:");
         
+        let mut choice = String::new();
         std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut choice);
+        std::io::stdin().read_line(&mut choice).unwrap();
         choice = choice.trim().to_string();
         
         match choice.as_str(){
@@ -59,11 +59,11 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         
         // Send message to host
         if send_type == "FILE" {
-            println!("Sending type message ''FILE'' to host");
+            println!("\nSending type message ''FILE'' to host");
             lock.write_all(b"FILE\n").await;
             //println!("Message sent");
         } else if send_type == "FOLDER" {
-            println!("Sending type message ''FOLDER'' to host");
+            println!("\nSending type message ''FOLDER'' to host");
             lock.write_all(b"FOLDER\n").await;
             // return;
         }
@@ -85,14 +85,12 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         if init_message == "START FILE" {
             // Free lock for writing stream
             drop(lock);
-            write_a_file_to_stream(stream_copy, None).await;
-            println!("DONE");
+            write_a_file_to_stream(stream_copy, None, true).await;
             return;
         } else if init_message == "START FOLDER" {
             // Free lock for writing stream
             drop(lock);
             write_a_folder_to_stream(stream_copy).await;
-            println!("DONE");
             return;
         } else {
             return;
