@@ -116,11 +116,11 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>) -> () {
 
         println!("File count is {}", file_count);
     
-        for _ in 0..file_vector.len() {
-            let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
-            let port = listener.local_addr().unwrap().port();
-            available_ports.push(port);
-        }
+        // for _ in 0..file_vector.len() {
+        //     let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
+        //     let port = listener.local_addr().unwrap().port();
+        //     available_ports.push(port);
+        // }
               
         // Initailize mutex for shared file
         let shared_file_vector = Arc::new(Mutex::new(file_vector));
