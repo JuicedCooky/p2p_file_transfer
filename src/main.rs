@@ -9,8 +9,6 @@ mod thread;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn Error>> {
-    let mut choice = String::new();
-    
     loop {
 
         clearscreen::clear().expect("failed to clear screen");
@@ -22,9 +20,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
         print!("Enter choice:");
         std::io::stdout().flush().unwrap();
 
-        choice.clear();
-        std::io::stdin().read_line(&mut choice).unwrap();
-        choice = String::from(choice.trim());
+        let choice = dual::take_input();
 
         match choice.as_str() {
             "1" => {
