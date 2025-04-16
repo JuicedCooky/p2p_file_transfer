@@ -1,1 +1,3 @@
 /target
+
+!target/debug/p2p.exe

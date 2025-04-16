@@ -98,6 +98,10 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                 return;
             },
             Ok(_) => {
+                if line.trim().eq("END"){
+                    println!("TEST DONE");
+                    return;
+                }
                 println!("Current contents of line are {}", line);
 
                 // line.clear();
@@ -105,7 +109,7 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                 // Get Folder name header
                 let folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
                 let save_location =  folder_save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str();
-                println!("\nReceiving folder {}", folder_name); 
+                println!("\nReceiving folder {}", folder_name);
                 //println!("Received Folder Location:{}",save_location);
                 match fs::create_dir_all(save_location.clone().trim()).await {
                     Ok(_) => {},
@@ -121,10 +125,6 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                     if line.contains("END FOLDER"){
                         line.clear();
                         break;
-                    }
-
-                    if line.contains("END"){
-                        return;
                     }
 
                     if line.contains("PORT"){ 

@@ -127,12 +127,14 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>, folder_path
             println!("Folder not found");
         }
 
-        println!();
+        println!("TEST:{},{}",folder_path.clone().unwrap_or_default().to_string_lossy(),parent_folder.clone().unwrap_or_default());
 
         // Get the number of files in the folder
         let file_count = file_vector.len();
         if file_count == 0 {
             println!("No files in folder to send.");
+            let _  = stream.lock().await.write_all(b"END\n").await;
+            let _ = stream.lock().await.flush().await;
             return;
         }
 
@@ -197,7 +199,7 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>, folder_path
             let _  = stream.lock().await.write_all(b"END FOLDER\n").await;
             let _ = stream.lock().await.flush().await;
         }
-        else if folder_path.as_ref().is_none(){
+        else{
             let _  = stream.lock().await.write_all(b"END\n").await;
             let _ = stream.lock().await.flush().await;
         }
