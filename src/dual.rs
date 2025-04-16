@@ -14,7 +14,7 @@ use crate::thread::write::write_a_file_to_stream;
 use crate::thread::write::write_a_folder_to_stream;
 use std::io::stdout;
 use std::sync::{Arc, Mutex as std_Mutex};
-use crate::thread::read::{self, read_file_from_stream, read_folder_from_stream, read_from_stream};
+use crate::thread::read::{read_file_from_stream_dual, read_folder_from_stream_dual};
 use std::fs::OpenOptions;
 
 pub struct Dual{
@@ -25,7 +25,7 @@ impl Dual {
     pub async fn new() -> Result<(), Box<dyn Error>> { 
         clearscreen::clear().expect("failed to clear screen");
 
-        println!("Select file and folder reception locations");
+        println!("Select file and folder reception locations, and log file folder");
         sleep(Duration::from_secs(2)).await;
       
         let file_save_location = match folder_init("Choose save location for files".to_string()).await {
@@ -74,7 +74,7 @@ impl Dual {
             dual_client.client_sub_session().await
         });
 
-        // Wait for both to complete
+        // Wait for both threads to complete
         let (host_result, client_result) = tokio::join!(host_handle, client_handle);
 
         println!("\nDual session ended. Host: {:?}, Client: {:?}", host_result, client_result);
@@ -94,6 +94,7 @@ impl Dual {
                     let _lock = self.io_lock.lock().unwrap();
                     println!("\nNotice from host substream");
                     println!("Server running\nLocal Address: {}:{}", ip,port);
+                    println!("Look to log file for details of received files and folders")
                 }  
             },
             Err(e) => {
@@ -111,11 +112,7 @@ impl Dual {
         let mut connect_ip_addr: String;
 
         loop {
-            {
-                let _lock = self.io_lock.lock().unwrap();
-                println!("\nNotice from host substream");
-                println!("Waiting on connection");
-            }
+            log_to_file(&log_path, &format!("\nWaiting on connection"));
             
             // Initialize host stream
             let host_stream = listener.accept().await;
@@ -128,12 +125,7 @@ impl Dual {
                     connect_ip_addr = addr.ip().to_string();
                 },
                 Err(e) => {
-                    {
-                        let _lock = self.io_lock.lock().unwrap();
-                        println!("\nNotice from host substream");
-                        println!("Failed connection :{}",e);
-                        
-                    }
+                    log_to_file(&log_path, &format!("Failed connection :{}",e));
                     
                     break;
                 },
@@ -171,8 +163,9 @@ impl Dual {
                         drop(lock);
 
                         let stream_clone = Arc::clone(&connect_stream_copy);
-                
-                        read_file_from_stream(stream_clone, file_save_location.clone()).await;
+
+                        let log_path_clone = log_path.clone();
+                        read_file_from_stream_dual(stream_clone, file_save_location.clone(), log_path_clone).await;
                             
                     },
                     "FOLDER" => {
@@ -185,13 +178,15 @@ impl Dual {
 
                         let stream_clone = Arc::clone(&connect_stream_copy);
 
-                        read_folder_from_stream(stream_clone, connect_ip_addr.clone(), folder_save_location.clone()).await;
+                        let log_path_clone = log_path.clone();
+                        read_folder_from_stream_dual(stream_clone, connect_ip_addr.clone(), folder_save_location.clone(), 
+                        log_path_clone).await;
                 
                     },
                     "DISCONNECT" => {
                         {
                             let _lock = self.io_lock.lock().unwrap();
-                            println!("\nNotice from host-substream");
+                            println!("\nNotice from host substream");
                             println!("\nClient disconnected");
                         }
                         break;
@@ -199,7 +194,7 @@ impl Dual {
                     _ => {
                         {
                             let _lock = self.io_lock.lock().unwrap();
-                            println!("\nNotice from host-substream");
+                            println!("\nNotice from host substream");
                             println!("Unexpected message, disconnecting from client");
                         }
                         break;
@@ -228,17 +223,14 @@ impl Dual {
         let mut connect_stream: Arc<tokio::sync::Mutex<TcpStream>>;
     
         loop {
-            let mut ip_addr = String::new();
-            // atomically access stdin stream
+            
             {
                 let _lock = self.io_lock.lock().unwrap();
                 println!("\nAction from client substream");
                 print!("Enter ip-address:socket, or 'b' to close sub-stream. Note, substream cannot be reopened once closed:");
-                std::io::stdout().flush().unwrap();
-                std::io::stdin().read_line(&mut ip_addr).unwrap();
             }
 
-            ip_addr = ip_addr.trim().to_string();
+            let ip_addr = tokio::task::spawn_blocking(|| take_input()).await.unwrap();
 
             if ip_addr == "b" {
                 return true;
@@ -293,19 +285,16 @@ impl Dual {
                 
                 },
                 Err(e) => { 
-                    let mut cont_option = String::new();
 
-                    // atomically access stdin stream
                     {
                         let _lock = self.io_lock.lock().unwrap();
                         println!("\nAction from client substream");
                         println!("Failed to connect to Server: {}",ip_addr);
                         print!("Enter 'c' to try again, other to close the sub-stream:");
-                        std::io::stdout().flush().unwrap();
-                        std::io::stdin().read_line(&mut cont_option).unwrap();
+                        std::io::stdout().flush().unwrap();          
                     }
-
-                    cont_option = String::from(cont_option.trim());
+                      
+                    let cont_option = tokio::task::spawn_blocking(|| take_input()).await.unwrap();
 
                     match cont_option.as_str() {
                         "c" => continue,
@@ -334,9 +323,6 @@ impl Dual {
             let connect_stream_clone = Arc::clone(&connect_stream);
             let mut send_type = String::new();
 
-            let mut choice = String::new();
-
-            // atomically access stdin stream
             {
                 let _lock = self.io_lock.lock().unwrap();
                 println!("\nAction from client substream");
@@ -345,11 +331,10 @@ impl Dual {
                 println!("2. Select Folder to send to host");
                 println!("3. Disconnect from host");
                 print!("Enter choice:");
-                std::io::stdout().flush().unwrap();
-                std::io::stdin().read_line(&mut choice).unwrap();
+                std::io::stdout().flush().unwrap();             
             }
-
-            choice = choice.trim().to_string();
+   
+            let choice =  tokio::task::spawn_blocking(|| take_input()).await.unwrap();
 
             match choice.as_str(){
                 "1" => send_type = String::from("FILE"),
@@ -443,6 +428,13 @@ pub fn log_to_file(log_path: &PathBuf, message: &str) {
     {
         let _ = writeln!(file, "{}", message); // Fail silently
     }
+}
+
+fn take_input() -> String {
+    std::io::stdout().flush().unwrap();
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    input.trim().to_string()  // 🔥 Trim and convert back to owned String
 }
 
 // Helper function for initializing folder paths
