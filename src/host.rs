@@ -1,6 +1,5 @@
 use std::{error::Error, fs::read, io::Write};
 
-
 use bytes::buf;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt, Interest}, net::TcpListener};
 use local_ip_address::local_ip;
@@ -14,7 +13,7 @@ use tokio::net::TcpStream;
 use rfd::FileDialog;
 use std::path::PathBuf;
 use std::io::stdout;
-use crate::thread::read::{self, read_file_from_stream, read_folder_from_stream, read_from_stream};
+use crate::thread::read::{read_file_from_stream, read_folder_from_stream};
 
 pub struct Host{}
 

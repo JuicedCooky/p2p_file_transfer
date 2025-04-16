@@ -433,27 +433,3 @@ pub async fn read_file_from_stream_direct_dual(mut stream: TcpStream, file_save_
     }
 }
 
-
-    let mut buffer = [0u8; 1024];
-    let mut total_read = 0;
-
-    loop {
-        let n = stream.lock().await.read(&mut buffer).await?;
-
-        if n == 0 {
-            break; // connection closed
-        }
-
-        total_read += n;
-
-        let chunk = String::from_utf8_lossy(&buffer[..n]);
-        if let Some(pos) = chunk.find('\n') {
-            line_buf.push_str(&chunk[..=pos]);
-            break;
-        } else {
-            line_buf.push_str(&chunk);
-        }
-    }
-
-    Ok(total_read)
-}
