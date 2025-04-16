@@ -1,0 +1,69 @@
+
+Waiting on connection
+
+Waiting on connection
+
+Waiting on connection
+
+Receiving folder data\1\2
+
+
+Receiving folder data\1
+
+
+Receiving folder data\1 - Copy\2
+
+Received file named: random.fs of size 340 bytes
+
+Receiving folder data\1 - Copy
+
+
+Receiving folder data\1 - Copy (2)\2
+
+Received file named: random.fs of size 340 bytes
+
+Receiving folder data\1 - Copy (2)
+
+
+Receiving folder data
+
+Received file named: random.fs of size 340 bytes
+Received file named: test.txt of size 29 bytes
+Received file named: test (8).txt of size 29 bytes
+Received file named: test (7).txt of size 29 bytes
+Received file named: test (4).txt of size 29 bytes
+Received file named: test (15).txt of size 29 bytes
+Received file named: test (6).txt of size 29 bytesReceived file named: test (14).txt of size 29 bytes
+
+Received file named: test (13).txt of size 29 bytes
+Received file named: test (3).txt of size 29 bytes
+Received file named: test (10).txt of size 29 bytes
+Received file named: test (2).txt of size 29 bytes
+Received file named: test (5).txt of size 29 bytesReceived file named: test (1).txt of size 29 bytes
+
+Received file named: test (12).txt of size 29 bytes
+Received file named: test (11).txt of size 29 bytes
+Received file named: test (9).txt of size 29 bytes
+Received file named: wallhaven-nz6m3j.png of size 2148627 bytes
+Received file named: wallhaven-nz6m3j.png of size 2148627 bytes
+Received file named: wallhaven-nz6m3j.png of size 2148627 bytes
+
+Receiving folder The Campaign Trail\80s
+
+
+Receiving folder The Campaign Trail\TTNW
+
+Received file named: 1980_redux_carter_loss_map.png of size 155419 bytes
+Received file named: Game_1_Map.png of size 163930 bytesReceived file named: Game_1_Results.png of size 161313 bytes
+
+Received file named: 1980_redux_carter_loss_screen.png of size 241912 bytes
+
+Receiving folder The Campaign Trail\80s
+
+
+Receiving folder The Campaign Trail\TTNW
+
+Received file named: 1980_redux_carter_loss_map.png of size 155419 bytes
+Received file named: Game_1_Results.png of size 161313 bytes
+Received file named: Game_1_Map.png of size 163930 bytes
+Received file named: 1980_redux_carter_loss_screen.png of size 241912 bytes

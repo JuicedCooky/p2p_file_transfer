@@ -126,9 +126,6 @@ pub async fn write_a_folder_to_stream(stream: Arc<Mutex<TcpStream>>, folder_path
         } else{
             println!("Folder not found");
         }
-
-        println!("TEST:{},{}",folder_path.clone().unwrap_or_default().to_string_lossy(),parent_folder.clone().unwrap_or_default());
-
         // Get the number of files in the folder
         let file_count = file_vector.len();
         if file_count == 0 {

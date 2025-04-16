@@ -99,7 +99,6 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
             },
             Ok(_) => {
                 if line.trim().eq("END"){
-                    println!("TEST DONE");
                     return;
                 }
                 println!("Current contents of line are {}", line);
@@ -296,6 +295,9 @@ pub async fn read_folder_from_stream_dual(stream: Arc<Mutex<TcpStream>>, outgoin
                 return;
             },
             Ok(_) => {
+                if line.trim().eq("END"){
+                    return;
+                }
                 // Get Folder name header
                 let folder_name = line.strip_prefix("FOLDER:").unwrap().to_string();
                 let save_location =  folder_save_location.to_str().unwrap().to_string() + "\\" + folder_name.as_str();
