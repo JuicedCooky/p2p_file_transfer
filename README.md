@@ -105,5 +105,6 @@ stream_lock = stream.lock().await; <- requests to use the lock and waits if not 
 ```
 We can then use this to access whatever the lock contains, in this case we can access the stream once this variable is out of scope or "dropped" in rust, the lock is released.
 
-
-### 
+Read [src files README](./src/) for more information.
+<br />
+Read [thread files README](./src/thread/) for more information.
