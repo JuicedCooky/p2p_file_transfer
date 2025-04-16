@@ -1,5 +1,4 @@
 // use std::io::Read;
-use std::io::Write;
 use tokio::sync::Mutex;
 use tokio::net::TcpStream;
 use tokio::io::BufReader;
@@ -20,7 +19,7 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
         print!("Enter choice:");
         
         let choice = dual::take_input();
-        
+
         match choice.as_str(){
             "1" => {
                 let cloned_stream = Arc::clone(&stream);
