@@ -15,7 +15,7 @@ It makes use of multiple threads to handle multiple files being shared by creati
 <br /><br />
 In order to make use of multiple threads we make use of the tokio library to create and run threads.
 
-# Run instructions
+# Run instructions for Host-Client
 1. Select Client or host, the host by default will receive files sent by the Client
 
 2. The Host will start up receiving connections towards its ip address, and the Client it prompted to input the IP address with the corrosponding port that should be displayed on the Host (IP_ADDRESS:PORT)
@@ -27,6 +27,16 @@ In order to make use of multiple threads we make use of the tokio library to cre
 5. The Client should then receive a FileDialog window to prompt the user to select a file/folder the wish to send.
 
 6. After this the Client should have the option to send more files/folder or close the connection with the Host.
+
+# Run instructions for Dual Hosst and Client
+
+1. Select Dual session option
+
+2. The user will be prompted to select 3 folder locations, one folder for receiving files, one folder for receiving folders, and one folder to put a log file that will record the files and folders sent to the Dual session
+
+3. The Dual session will launch two subthreads, a host subthread that will connect to an ip address and be ready to receive files/and folders, and a client subthread that can be used to send be used to select files and folders to send in the manner described for the Client option
+
+4. Unlike a Host or a Client, a Dual session can only make one client connection in it's client subthread and receive from 1 client in it's host subthread. Once the client subthread and host subthread connections are closed, the session will end.
 
 # Tokio package
 This runtime package for the rust programming provides:

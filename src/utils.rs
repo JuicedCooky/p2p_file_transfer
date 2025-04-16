@@ -6,6 +6,7 @@ use tokio::io::BufReader;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWriteExt;
 use std::sync::Arc;
+use crate::dual;
 use crate::thread::write::write_a_file_to_stream;
 use crate::thread::write::write_a_folder_to_stream;
 
@@ -18,10 +19,7 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
         println!("3. Disconnect from host");
         print!("Enter choice:");
         
-        let mut choice = String::new();
-        std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut choice).unwrap();
-        choice = choice.trim().to_string();
+        let choice = dual::take_input();
         
         match choice.as_str(){
             "1" => {

@@ -1,6 +1,7 @@
 use std::error::Error;
 use tokio::net::TcpStream;
-use std::io::Write;
+use crate::dual;
+
 use super::utils;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -12,20 +13,15 @@ pub struct Client{}
 impl Client{
     pub async fn new() -> Result<(), Box<dyn Error>>{
 
-        let mut ip_addr = String::new();
-
         loop {
 
             clearscreen::clear().expect("failed to clear screen");
 
             print!("Enter ip-address:socket, or 'b' to go back to the menu:");
-            std::io::stdout().flush().unwrap();
-            ip_addr.clear();
-            std::io::stdin().read_line(&mut ip_addr).unwrap();
+            
+            let ip_addr = dual::take_input();
 
-            ip_addr = ip_addr.trim().to_string();
-
-           if ip_addr == "b" {
+            if ip_addr == "b" {
                 return Ok(());
             }
 
@@ -82,14 +78,9 @@ impl Client{
                 Err(_e) => {
                     println!("Failed to connect to Server: {}",ip_addr);
 
-                    let mut cont_option = String::new();
-
                     println!("Enter 'c' to try again, other to return to the menu");
 
-                    std::io::stdout().flush().unwrap();
-                    std::io::stdin().read_line(&mut cont_option).unwrap();
-
-                    cont_option = String::from(cont_option.trim());
+                    let cont_option = dual::take_input();
 
                     match cont_option.as_str() {
                         "c" => continue,
