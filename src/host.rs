@@ -1,4 +1,4 @@
-use std::{error::Error, io::Write};
+use std::error::Error;
 use tokio::{io::AsyncWriteExt, net::TcpListener};
 use local_ip_address::local_ip;
 use std::sync::Arc;
@@ -8,7 +8,7 @@ use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use rfd::FileDialog;
 use std::path::PathBuf;
-use crate::thread::read::{read_file_from_stream, read_folder_from_stream};
+use crate::{dual, thread::read::{read_file_from_stream, read_folder_from_stream}};
 
 pub struct Host{}
 
@@ -36,11 +36,7 @@ impl Host {
                     println!("Requested connection from {}", addr);
                     print!("Enter 'y' to accept, other to reject:");
 
-                    let mut connect_option = String::new();
-                    std::io::stdout().flush().unwrap();
-                    std::io::stdin().read_line(&mut connect_option).unwrap();
-
-                    connect_option = String::from(connect_option.trim());
+                    let connect_option = dual::take_input();
 
                     match connect_option.as_str() {
                         "y" => {
@@ -168,11 +164,9 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
         }
     }
 
-    let mut cont = String::new();
-
     print!("Would you like to continue as host? Enter 'y' for yes, other for no:");
-    std::io::stdout().flush().unwrap();
-    std::io::stdin().read_line(&mut cont).unwrap();
+    
+    let cont = dual::take_input();
 
     if cont == "y" {
         return true;

@@ -422,7 +422,7 @@ pub fn log_to_file(log_path: &PathBuf, message: &str) {
 }
 
 // Helper function for taking input from the command line
-fn take_input() -> String {
+pub fn take_input() -> String {
     std::io::stdout().flush().unwrap();
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
