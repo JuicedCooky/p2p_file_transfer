@@ -15,6 +15,7 @@ use crate::thread::write::write_a_folder_to_stream;
 use std::io::stdout;
 use std::sync::{Arc, Mutex as std_Mutex};
 use crate::thread::read::{self, read_file_from_stream, read_folder_from_stream, read_from_stream};
+use std::fs::OpenOptions;
 
 pub struct Dual{
     io_lock: Arc<std_Mutex<()>>
@@ -23,6 +24,35 @@ pub struct Dual{
 impl Dual {
     pub async fn new() -> Result<(), Box<dyn Error>> { 
         clearscreen::clear().expect("failed to clear screen");
+
+        println!("Select file and folder reception locations");
+        sleep(Duration::from_secs(2)).await;
+      
+        let file_save_location = match folder_init("Choose save location for files".to_string()).await {
+            Some(path) => path,
+            None => {
+                println!("File folder selection cancelled or failed. Returning to menu.");
+                return Ok(());
+            }
+        };
+
+        let folder_save_location = match folder_init("Choose save location for folders".to_string()).await {
+            Some(path) => path,
+            None => {
+                println!("File folder selection cancelled or failed. Returning to menu.");
+                return Ok(());
+            }
+        };
+
+        let log_save_location = match folder_init("Choose to save reception log".to_string()).await {
+            Some(path) => path,
+            None => {
+                println!("File folder selection cancelled or failed. Returning to menu.");
+                return Ok(());
+            }
+        };
+
+        let log_path = log_save_location.join("transfer_log.txt");
 
         let dual = Arc::new(Dual {
             io_lock: Arc::new(std_Mutex::new(())),
@@ -34,7 +64,7 @@ impl Dual {
 
         // Spawn both tasks
         let host_handle = tokio::spawn(async move {
-            dual_host.host_sub_session().await
+            dual_host.host_sub_session(file_save_location, folder_save_location, log_path).await
         });
 
         // Pause to allow host subsession to obtain and print it's IP address
@@ -53,7 +83,7 @@ impl Dual {
         Ok(())
     }
 
-    async fn host_sub_session(&self) -> bool {
+    async fn host_sub_session(&self, file_save_location: PathBuf, folder_save_location: PathBuf, log_path: PathBuf) -> bool {
 
         // Bind to arbitrary port for receiving
         let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
@@ -77,13 +107,8 @@ impl Dual {
         }
 
         // Connect variables
-        let mut connect_flag = false;
         let mut connect_stream: TcpStream;
         let mut connect_ip_addr: String;
-
-        // File and folder save locations
-        let mut file_save_location = PathBuf::new();
-        let mut folder_save_location = PathBuf::new();
 
         loop {
             {
@@ -93,42 +118,19 @@ impl Dual {
             }
             
             // Initialize host stream
-            let mut host_stream = listener.accept().await;
+            let host_stream = listener.accept().await;
 
-            // Make decision to proceed with connection
+            // Gague connection success
             match host_stream {
-                Ok((mut host_stream, addr)) => {
-
+                Ok((host_stream, addr)) => {
+                    // Formalize Connection
                     connect_stream = host_stream;
                     connect_ip_addr = addr.ip().to_string();
-
-                    let mut connect_option = String::new();
-
-                    // atomically access stdin stream
-                    {
-                        let _lock = self.io_lock.lock().unwrap();
-                        println!("\nAction from host substream");
-                        println!("Requested connection from {}", addr);
-                        print!("Enter 'y' to accept, other to reject:");
-
-                        std::io::stdout().flush().unwrap();
-                        std::io::stdin().read_line(&mut connect_option).unwrap();
-                    } //drop lock
-
-                    connect_option = String::from(connect_option.trim());
-                
-                    match connect_option.as_str() {
-                        "y" => {
-                            connect_flag = true;
-                        },
-                        _ => connect_flag = false
-                    }
-
                 },
                 Err(e) => {
                     {
                         let _lock = self.io_lock.lock().unwrap();
-                        println!("\nNotice from host-substream");
+                        println!("\nNotice from host substream");
                         println!("Failed connection :{}",e);
                         
                     }
@@ -137,126 +139,84 @@ impl Dual {
                 },
             }
 
-            if connect_flag {
+            // Inform client of acceptance
+            connect_stream.write_all(b"Accepted\n").await;
 
-                //println!("Enter reception branch")
+            // Initialize stream variables to pass to handler
+            let connect_stream = Arc::new(tokio::sync::Mutex::new(connect_stream));
+            let connect_stream_copy = Arc::clone(&connect_stream);
 
-                // Inform client of acceptance
-                connect_stream.write_all(b"Accepted\n").await;
+            // Enter file reception logic
+            loop {
+                // Initialize outer lock and reader
+                let mut lock = connect_stream.lock().await;
+                let mut reader = BufReader::new(&mut *lock);
 
-                // Initialize stream variables to pass to handler
-                let connect_stream = Arc::new(tokio::sync::Mutex::new(connect_stream));
-                let connect_stream_copy = Arc::clone(&connect_stream);
+                // Initialize line to be read from buffer
+                let mut line = String::new();
 
-                // Enter file reception logic
-                loop {
-                    // Initialize outer lock and reader
-                    let mut lock = connect_stream.lock().await;
-                    let mut reader = BufReader::new(&mut *lock);
+                reader.read_line(&mut line).await;
 
-                    // Initialize line to be read from buffer
-                    let mut line = String::new();
+                let send_type = line.trim().to_string();
 
-                    reader.read_line(&mut line).await;
+                //println!("Received send_type message {} from client", send_type);
 
-                    let send_type = line.trim().to_string();
+                match send_type.as_str() {
+                    "FILE" => {
 
-                    //println!("Received send_type message {} from client", send_type);
+                        // Initiate sending process for client 
+                        lock.write_all(b"START FILE\n").await;
 
-                    match send_type.as_str() {
-                        "FILE" => {
+                        // Free lock for reading stream
+                        drop(lock);
 
-                            if file_save_location.as_mut_os_str().is_empty() {
-                                file_save_location = tokio::task::spawn_blocking(|| {
-                                    FileDialog::new()
-                                        .set_title("Choose save location")
-                                        .set_directory("/".to_string())
-                                        .pick_folder()
-                                }).await.unwrap().unwrap_or_else(|| {
-                                    //println!("User cancelled folder selection.");
-                                    std::process::exit(0);
-                                });
-                            }
-                            
-                            lock.write_all(b"START FILE\n").await;
-
-                            // Free lock for reading stream
-                            drop(lock);
-
-                            let stream_clone = Arc::clone(&connect_stream_copy);
+                        let stream_clone = Arc::clone(&connect_stream_copy);
                 
-                            read_file_from_stream(stream_clone, file_save_location.clone()).await;
+                        read_file_from_stream(stream_clone, file_save_location.clone()).await;
                             
-                        },
-                        "FOLDER" => {
-                            if folder_save_location.as_mut_os_str().is_empty() {
-                                folder_save_location = tokio::task::spawn_blocking(|| {
-                                    FileDialog::new()
-                                        .set_title("Choose save location")
-                                        .set_directory("/".to_string())
-                                        .pick_folder()
-                                }).await.unwrap().unwrap_or_else(|| {
-                                    //println!("User cancelled folder selection.");
-                                    std::process::exit(0);
-                                });
-                            } 
-
-                            lock.write_all(b"START FOLDER\n").await;
+                    },
+                    "FOLDER" => {
                             
-                            // Free lock for reading stream
-                            drop(lock);
+                        // Initiate sending process for client 
+                        lock.write_all(b"START FOLDER\n").await;
+                            
+                        // Free lock for reading stream
+                        drop(lock);
 
-                            let stream_clone = Arc::clone(&connect_stream_copy);
+                        let stream_clone = Arc::clone(&connect_stream_copy);
 
-                            read_folder_from_stream(stream_clone, connect_ip_addr.clone(), folder_save_location.clone()).await;
+                        read_folder_from_stream(stream_clone, connect_ip_addr.clone(), folder_save_location.clone()).await;
                 
-                        },
-                        "DISCONNECT" => {
-                            {
-                                let _lock = self.io_lock.lock().unwrap();
-                                println!("\nNotice from host-substream");
-                                println!("\nClient disconnected");
-                            }
-                            break;
-                        },
-                        _ => {
-                            {
-                                let _lock = self.io_lock.lock().unwrap();
-                                println!("\nNotice from host-substream");
-                                println!("Unexpected message, disconnecting from client");
-                            }
-                            break;
+                    },
+                    "DISCONNECT" => {
+                        {
+                            let _lock = self.io_lock.lock().unwrap();
+                            println!("\nNotice from host-substream");
+                            println!("\nClient disconnected");
                         }
-
+                        break;
+                    },
+                    _ => {
+                        {
+                            let _lock = self.io_lock.lock().unwrap();
+                            println!("\nNotice from host-substream");
+                            println!("Unexpected message, disconnecting from client");
+                        }
+                        break;
                     }
+
                 }
-
-            } else {
-                // Inform client of acceptance
-                connect_stream.write_all(b"Rejected\n").await;
-                connect_stream.shutdown().await;
-
-                drop(connect_stream);
             }
 
-            let mut cont = String::new();
             // atomically access stdin stream
             {
                 let _lock = self.io_lock.lock().unwrap();
-                println!("\nAction from host substream");
-                println!("Would you like to continue as host? Note that if you disconnect, you will have to start a new recession as host or dual to receive again");
-                print!("Enter 'y' for yes, other for no:");
-                std::io::stdout().flush().unwrap();
-                std::io::stdin().read_line(&mut cont).unwrap();
+                println!("\nNotice from host substream");
+                println!("Closing substream")
+               
             }
 
-            cont = String::from(cont.trim());
-
-            if cont == "y" {
-                continue;
-            } else {
-                break;
-            }
+            break;
         }
 
         // When returned, spawning function will know process is closed
@@ -264,11 +224,11 @@ impl Dual {
     }
 
     async fn client_sub_session(&self) -> bool{
-
-        let mut ip_addr = String::new();
+    
         let mut connect_stream: Arc<tokio::sync::Mutex<TcpStream>>;
     
         loop {
+            let mut ip_addr = String::new();
             // atomically access stdin stream
             {
                 let _lock = self.io_lock.lock().unwrap();
@@ -318,23 +278,14 @@ impl Dual {
                             connect_stream = Arc::new(tokio::sync::Mutex::new(send_stream));
 
                             let _sub_result = self.client_sub_session_handler(connect_stream).await;
-                            continue;
-                        },
-                        "Rejected" => {
-                            {
-                                let _lock = self.io_lock.lock().unwrap();
-                                println!("\nNotice from client substream");
-                                println!("Server rejected the connection");
-                            }       
-                            sleep(Duration::from_secs(3)).await;
-                            continue;
+                            break;
                         },
                         _ => {
                             {
                                 let _lock = self.io_lock.lock().unwrap();
                                 println!("\nNotice from client substream");
                                 println!("Unexpected response from server");
-                            }   
+                            }       
                             sleep(Duration::from_secs(3)).await;
                             continue;
                         }
@@ -366,11 +317,18 @@ impl Dual {
 
         }
 
+        {
+            let _lock = self.io_lock.lock().unwrap();
+            println!("\nNotice from client substream");
+            println!("Closing substream")
+           
+        }
+
         // When returned, spawning function will know process is closed
         true
     }
 
-    async fn client_sub_session_handler(&self, connect_stream: Arc<tokio::sync::Mutex<TcpStream>>) -> (){
+    async fn client_sub_session_handler(&self, connect_stream: Arc<tokio::sync::Mutex<TcpStream>>) -> bool{
         loop {
             // Initialize sender stream parameters
             let connect_stream_clone = Arc::clone(&connect_stream);
@@ -455,12 +413,47 @@ impl Dual {
                     write_a_folder_to_stream(connect_stream_clone,None,None).await;
                     continue;
                 } else {
-                    continue;
+                    {
+                        let _lock = self.io_lock.lock().unwrap();
+                        println!("\nNotice from client substream");
+                        println!("Unexpected message from server, breaking connection");
+                    }
+                    {
+                        // Acquire lock, and send disconnect message to host
+                        let mut lock = connect_stream.lock().await;
+                        lock.write_all(b"DISCONNECT\n").await;
+                    }
+                    break;
                 }
 
             }
 
         }
 
+        true
     }
+}
+
+// Function to log messages on the host subsession
+pub fn log_to_file(log_path: &PathBuf, message: &str) {
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    {
+        let _ = writeln!(file, "{}", message); // Fail silently
+    }
+}
+
+// Helper function for initializing folder paths
+async fn folder_init(title: String) -> Option<PathBuf> {
+    tokio::task::spawn_blocking(move || {
+        FileDialog::new()
+            .set_title(&title)
+            .set_directory("/")
+            .pick_folder()
+    })
+    .await
+    .ok()
+    .flatten()
 }
