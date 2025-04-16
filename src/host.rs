@@ -19,10 +19,20 @@ use crate::thread::read::{self, read_file_from_stream, read_folder_from_stream, 
 pub struct Host{}
 
 impl Host {
-    pub async fn new(port: Option<&str>) -> Result<(), Box<dyn Error>>{
+    pub async fn new() -> Result<(), Box<dyn Error>>{
         clearscreen::clear().expect("failed to clear screen");
+        /*
         let port = port.unwrap_or("6142");
         let listener = TcpListener::bind(format!("0.0.0.0:{}",port)).await?;
+        match local_ip(){
+            Ok(ip) => println!("Server running\nLocal Address: {}:{}", ip,port),
+            Err(e) => println!("Could not start server!\n{}",e.to_string()),
+        }
+        */
+
+        // Obtain arbitrary port
+        let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
         match local_ip(){
             Ok(ip) => println!("Server running\nLocal Address: {}:{}", ip,port),
             Err(e) => println!("Could not start server!\n{}",e.to_string()),

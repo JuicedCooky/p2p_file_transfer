@@ -15,7 +15,7 @@ use crate::thread::read;
 impl Client{
     pub async fn new() -> Result<(), Box<dyn Error>>{
 
-            //notes for ip address of the current device/server:
+        //notes for ip address of the current device/server:
         //->ipconfig, to list ip addresses
         //Wireless LAN adapter Wi-Fi -> IPv4 Address
         // let mut ip_addr = "172.21.208.1:6142".to_string();

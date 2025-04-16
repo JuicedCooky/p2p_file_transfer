@@ -20,6 +20,7 @@ use std::string;
 mod host;
 mod client;
 mod utils;
+mod dual;
 mod thread;
 
 #[tokio::main]
@@ -32,6 +33,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 
         println!("1. Be host device.");
         println!("2. Be client to connect to host.");
+        println!("3. Be dual host and client");
         println!("4. Quit application.");
         print!("Enter choice:");
         std::io::stdout().flush().unwrap();
@@ -42,15 +44,13 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 
         match choice.as_str() {
             "1" => {
-                let host = host::Host::new(Some("6142")).await?;
+                let host = host::Host::new().await?;
             }
             "2" => {
                 let client = client::Client::new().await?;
             }
             "3" => {
-                let listener = TcpListener::bind(format!("0.0.0.0:6142")).await?;
-                let mut stream = listener.accept().await;
-                // file(&mut stream);
+                let dual = dual::Dual::new().await?;
             }
             "4" => break,
             _ => continue
