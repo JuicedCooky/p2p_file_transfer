@@ -9,6 +9,9 @@
   Connects to the server of the first device,
   connects via TCP IPv4 ip address -->
 
+# Download Link
+[Download program executable](https://github.com/JuicedCooky/p2p_file_transfer/tree/main/p2p.exe)
+
 # Program
 This program is a file sharing system between two devices on the same network. <br />
 It makes use of multiple threads to handle multiple files being shared by creating multiple TCP connections each in its own thread sending the file and filemeta data to the corrisponding receiver.
