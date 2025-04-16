@@ -1,24 +1,17 @@
 use std::error::Error;
 use tokio::net::TcpStream;
-
 use std::io::Write;
 use super::utils;
-use tokio::{signal, stream};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::time::{Duration, sleep};
-use tokio::io::Interest;
+
 pub struct Client{}
-use crate::thread::read;
 
 impl Client{
     pub async fn new() -> Result<(), Box<dyn Error>>{
 
-        //notes for ip address of the current device/server:
-        //->ipconfig, to list ip addresses
-        //Wireless LAN adapter Wi-Fi -> IPv4 Address
-        // let mut ip_addr = "172.21.208.1:6142".to_string();
         let mut ip_addr = String::new();
 
         loop {
@@ -32,13 +25,7 @@ impl Client{
 
             ip_addr = ip_addr.trim().to_string();
 
-            if ip_addr.is_empty() {
-                println!("Using default ip-address.");
-                ip_addr = "10.160.3.126:6142".to_string();
-                ip_addr = "10.160.6.186:6142".to_string();
-                ip_addr = "192.168.0.168:6142".to_string();
-            }
-            else if ip_addr == "b" {
+           if ip_addr == "b" {
                 return Ok(());
             }
 
@@ -70,7 +57,7 @@ impl Client{
                             let options_join = tokio::spawn(async move{
                                 utils::display_options(stream_cloned).await;
                             });
-                            options_join.await;
+                            let _ = options_join.await;
                         },
                         "Rejected" => {
                             println!("Server rejected the connection");
@@ -92,7 +79,7 @@ impl Client{
                     
                     return Ok(())
                 }
-                Err(e) => {
+                Err(_e) => {
                     println!("Failed to connect to Server: {}",ip_addr);
 
                     let mut cont_option = String::new();
@@ -108,8 +95,6 @@ impl Client{
                         "c" => continue,
                         _ => return Ok(())
                     }
-
-                    //Err(Box::new(e))
                 }
             }
         }

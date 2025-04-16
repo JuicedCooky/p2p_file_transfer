@@ -1,41 +1,22 @@
-// pub mod thread;
-
-use bytes::buf;
-use bytes::Buf;
-use bytes::Bytes;
-use rfd::FileDialog;
 use tokio::fs;
 use tokio::fs::File;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
-use tokio::task;
-use std::borrow::Cow;
-use std::io::BufRead;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::usize;
 use tokio::sync::Mutex;
 use tokio::io::AsyncReadExt;
-use tokio::io::Interest;
 
 use crate::dual;
 
 pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_location: PathBuf) -> () {
 
-    // Print IP address as test
-    let stream_ip = stream.lock().await.peer_addr().unwrap().ip().to_string();
-    //println!("IP TEST:{}",stream_ip);
-
-    //println!("Saving file to location {:?}", file_save_location);
-
     // Initialize stream lock and buffer reader to read data from client
     let mut stream_lock = stream.lock().await;
     let mut reader = BufReader::new(&mut *stream_lock);
-
-    //println!("Acquired reader lock");
 
     let mut line = String::new();
 
@@ -52,7 +33,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
             line.clear(); 
            
             // Get FILENAME header
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let header_line = line.clone();
             //println!("Received raw line {}", header_line);
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
@@ -62,7 +43,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
             line.clear(); 
 
             // Get FILESIZE header
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             //println!("Received raw line {}", line);
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
             //println!("FILESIZE:{}", file_size);
@@ -80,10 +61,8 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
             //println!("Starting file read loop (expecting {} bytes)...", file_size_usize);
 
             while received < file_size_usize{
-                let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                let max_size = std::cmp::min(file_size_usize-received,buffer.len());
                 let n = reader.read(&mut buffer[..max_size]).await.unwrap();
-
-                //println!("Read {} bytes: {:?}", n, &buffer[..n]);
 
                 if n == 0{
                     break;
@@ -91,9 +70,7 @@ pub async fn read_file_from_stream(stream: Arc<Mutex<TcpStream>>, file_save_loca
 
                 received += n;
 
-                //println!("Received {}/{} bytes", received, file_size_usize);
-
-                file.write_all(&mut buffer[..n]).await;
+                let _ = file.write_all(&mut buffer[..n]).await;
             }
 
             println!("\nReceived file named {} of size {} bytes\n", file_name, file_size_usize);
@@ -139,7 +116,7 @@ pub async fn read_folder_from_stream(stream: Arc<Mutex<TcpStream>>, outgoing_add
                 loop {
 
                     line.clear();
-                    reader.read_line(&mut line).await;
+                    let _ = reader.read_line(&mut line).await;
 
                     if line.contains("END FOLDER"){
                         line.clear();
@@ -186,21 +163,17 @@ pub async fn read_file_from_stream_direct(mut stream: TcpStream, file_save_locat
 
     match reader.read_line(&mut line).await {
         Ok(0) => {
-            //println!("CONNECTION CLOSED ABRUPTLY");
             return;
         }
         Ok(_) => {
-            //println!("Init message is {}", line);
             line.clear();
 
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let header_line = line.clone();
-            //println!("Received raw line {}", header_line);
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
             line.clear();
 
-            reader.read_line(&mut line).await;
-            //println!("Received raw line {}", line);
+            let _ = reader.read_line(&mut line).await;
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
             let file_size_usize = file_size.parse::<usize>().unwrap();
 
@@ -263,7 +236,7 @@ pub async fn read_file_from_stream_dual(stream: Arc<Mutex<TcpStream>>, file_save
             line.clear(); 
            
             // Get FILENAME header
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let header_line = line.clone();
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
             
@@ -271,7 +244,7 @@ pub async fn read_file_from_stream_dual(stream: Arc<Mutex<TcpStream>>, file_save
             line.clear(); 
 
             // Get FILESIZE header
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
          
             // Prepare to receive file data as byte data
@@ -285,7 +258,7 @@ pub async fn read_file_from_stream_dual(stream: Arc<Mutex<TcpStream>>, file_save
             let mut buffer = [0u8; 4096];
        
             while received < file_size_usize{
-                let mut max_size = std::cmp::min(file_size_usize-received,buffer.len());
+                let max_size = std::cmp::min(file_size_usize-received,buffer.len());
                 let n = reader.read(&mut buffer[..max_size]).await.unwrap();
 
                 if n == 0{
@@ -294,7 +267,7 @@ pub async fn read_file_from_stream_dual(stream: Arc<Mutex<TcpStream>>, file_save
 
                 received += n;
 
-                file.write_all(&mut buffer[..n]).await;
+                let _ = file.write_all(&mut buffer[..n]).await;
             }
 
             dual::log_to_file(&log_path, &format!("\nReceived file named {} of size {} bytes\n", file_name, file_size_usize));
@@ -335,9 +308,9 @@ pub async fn read_folder_from_stream_dual(stream: Arc<Mutex<TcpStream>>, outgoin
 
                 // Parse list of available ports sent by the client
                 loop {
-
                     line.clear();
-                    reader.read_line(&mut line).await;
+
+                    let _ = reader.read_line(&mut line).await;
 
                     if line.contains("END FOLDER"){
                         line.clear();
@@ -391,18 +364,17 @@ pub async fn read_file_from_stream_direct_dual(mut stream: TcpStream, file_save_
 
     match reader.read_line(&mut line).await {
         Ok(0) => {
-            dual::log_to_file(&log_path, &format!("CONNECTION CLOSED ABRUPTLY"));
             return;
         }
         Ok(_) => {
             line.clear();
 
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let header_line = line.clone();
             let file_name = header_line.strip_prefix("FILENAME:").unwrap().trim();
             line.clear();
 
-            reader.read_line(&mut line).await;
+            let _ = reader.read_line(&mut line).await;
             let file_size = line.strip_prefix("FILESIZE:").unwrap().trim();
             let file_size_usize = file_size.parse::<usize>().unwrap();
 

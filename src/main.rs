@@ -1,21 +1,5 @@
-// use get_if_addrs::Interface;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
-use tokio::net::TcpListener;
-
-
-use tokio::io::AsyncReadExt;
-
 use std::error::Error;
 use std::io::Write;
-use std::os::windows::raw::HANDLE;
-use std::string;
-
-// use std::fs;
-
-// use rfd::FileDialog;
-
-// use get_if_addrs::get_if_addrs;
 
 mod host;
 mod client;
@@ -44,13 +28,13 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
 
         match choice.as_str() {
             "1" => {
-                let host = host::Host::new().await?;
+                let _host = host::Host::new().await?;
             }
             "2" => {
-                let client = client::Client::new().await?;
+                let _client = client::Client::new().await?;
             }
             "3" => {
-                let dual = dual::Dual::new().await?;
+                let _dual = dual::Dual::new().await?;
             }
             "4" => break,
             _ => continue

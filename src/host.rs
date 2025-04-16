@@ -1,10 +1,6 @@
-use std::{error::Error, fs::read, io::Write};
-
-use bytes::buf;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt, Interest}, net::TcpListener};
+use std::{error::Error, io::Write};
+use tokio::{io::AsyncWriteExt, net::TcpListener};
 use local_ip_address::local_ip;
-
-use super::utils;
 use std::sync::Arc;
 use tokio::io::AsyncBufReadExt;
 use tokio::sync::Mutex;
@@ -12,7 +8,6 @@ use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use rfd::FileDialog;
 use std::path::PathBuf;
-use std::io::stdout;
 use crate::thread::read::{read_file_from_stream, read_folder_from_stream};
 
 pub struct Host{}
@@ -20,15 +15,7 @@ pub struct Host{}
 impl Host {
     pub async fn new() -> Result<(), Box<dyn Error>>{
         clearscreen::clear().expect("failed to clear screen");
-        /*
-        let port = port.unwrap_or("6142");
-        let listener = TcpListener::bind(format!("0.0.0.0:{}",port)).await?;
-        match local_ip(){
-            Ok(ip) => println!("Server running\nLocal Address: {}:{}", ip,port),
-            Err(e) => println!("Could not start server!\n{}",e.to_string()),
-        }
-        */
-
+    
         // Obtain arbitrary port
         let listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -39,7 +26,7 @@ impl Host {
 
         loop {
             println!("Waiting on client");
-            let mut stream = listener.accept().await;
+            let stream = listener.accept().await;
             while stream.iter().next().is_none(){
                 println!("TEST");
             }
@@ -115,7 +102,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
         // Initialize line to be read from buffer
         let mut line = String::new();
 
-        reader.read_line(&mut line).await;
+        let _ = reader.read_line(&mut line).await;
 
         let send_type = line.trim().to_string();
 
@@ -136,7 +123,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                     });
                 }
                 
-                lock.write_all(b"START FILE\n").await;
+                let _ = lock.write_all(b"START FILE\n").await;
 
                 // Free lock for reading stream
                 drop(lock);
@@ -159,7 +146,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                     });
                 } 
 
-                lock.write_all(b"START FOLDER\n").await;
+                let _ = lock.write_all(b"START FOLDER\n").await;
                 
                 // Free lock for reading stream
                 drop(lock);

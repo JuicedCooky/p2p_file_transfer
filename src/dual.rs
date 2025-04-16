@@ -1,9 +1,6 @@
-use std::{error::Error, fs::read, io::Write};
-use bytes::buf;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt, Interest}, net::TcpListener};
+use std::{error::Error, io::Write};
+use tokio::{io::AsyncWriteExt, net::TcpListener};
 use local_ip_address::local_ip;
-use super::utils;
-use std::sync::Mutex;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
@@ -12,7 +9,6 @@ use std::path::PathBuf;
 use tokio::time::{Duration, sleep};
 use crate::thread::write::write_a_file_to_stream;
 use crate::thread::write::write_a_folder_to_stream;
-use std::io::stdout;
 use std::sync::{Arc, Mutex as std_Mutex};
 use crate::thread::read::{read_file_from_stream_dual, read_folder_from_stream_dual};
 use std::fs::OpenOptions;
@@ -109,7 +105,7 @@ impl Dual {
 
         // Connect variables
         let mut connect_stream: TcpStream;
-        let mut connect_ip_addr: String;
+        let connect_ip_addr: String;
 
         loop {
             log_to_file(&log_path, &format!("\nWaiting on connection"));
@@ -132,7 +128,7 @@ impl Dual {
             }
 
             // Inform client of acceptance
-            connect_stream.write_all(b"Accepted\n").await;
+            let _ = connect_stream.write_all(b"Accepted\n").await;
 
             // Initialize stream variables to pass to handler
             let connect_stream = Arc::new(tokio::sync::Mutex::new(connect_stream));
@@ -147,17 +143,15 @@ impl Dual {
                 // Initialize line to be read from buffer
                 let mut line = String::new();
 
-                reader.read_line(&mut line).await;
+                let _ = reader.read_line(&mut line).await;
 
                 let send_type = line.trim().to_string();
-
-                //println!("Received send_type message {} from client", send_type);
 
                 match send_type.as_str() {
                     "FILE" => {
 
                         // Initiate sending process for client 
-                        lock.write_all(b"START FILE\n").await;
+                        let _ = lock.write_all(b"START FILE\n").await;
 
                         // Free lock for reading stream
                         drop(lock);
@@ -171,7 +165,7 @@ impl Dual {
                     "FOLDER" => {
                             
                         // Initiate sending process for client 
-                        lock.write_all(b"START FOLDER\n").await;
+                        let _ = lock.write_all(b"START FOLDER\n").await;
                             
                         // Free lock for reading stream
                         drop(lock);
@@ -220,7 +214,7 @@ impl Dual {
 
     async fn client_sub_session(&self) -> bool{
     
-        let mut connect_stream: Arc<tokio::sync::Mutex<TcpStream>>;
+        let connect_stream: Arc<tokio::sync::Mutex<TcpStream>>;
     
         loop {
             
@@ -284,7 +278,7 @@ impl Dual {
                     }
                 
                 },
-                Err(e) => { 
+                Err(_e) => { 
 
                     {
                         let _lock = self.io_lock.lock().unwrap();
@@ -321,7 +315,7 @@ impl Dual {
         loop {
             // Initialize sender stream parameters
             let connect_stream_clone = Arc::clone(&connect_stream);
-            let mut send_type = String::new();
+            let send_type: String;
 
             {
                 let _lock = self.io_lock.lock().unwrap();
@@ -342,7 +336,7 @@ impl Dual {
                 "3" => {
                     // Acquire lock, and send disconnect message to host
                     let mut lock = connect_stream.lock().await;
-                    lock.write_all(b"DISCONNECT\n").await;
+                    let _ = lock.write_all(b"DISCONNECT\n").await;
                     break;
                 }
                 _ => continue
@@ -360,17 +354,14 @@ impl Dual {
                         println!("\nAction from client substream");
                         println!("\nSending type message ''FILE'' to host");
                     }
-                    lock.write_all(b"FILE\n").await;
-                    
-                    //println!("Message sent");
+                    let _ = lock.write_all(b"FILE\n").await;
                 } else if send_type == "FOLDER" {
                     {
                         let _lock = self.io_lock.lock().unwrap();
                         println!("\nAction from client substream");
                         println!("\nSending type message ''FOLDER'' to host");
                     }
-                    lock.write_all(b"FOLDER\n").await;
-                    // return;
+                    let _ = lock.write_all(b"FOLDER\n").await;
                 }
             }
 
@@ -383,7 +374,7 @@ impl Dual {
                 // Receive start message
                 let mut init_message = String::new();
 
-                reader.read_line(&mut init_message).await;
+                let _ = reader.read_line(&mut init_message).await;
 
                 let init_message = init_message.trim().to_string();
 
@@ -406,7 +397,7 @@ impl Dual {
                     {
                         // Acquire lock, and send disconnect message to host
                         let mut lock = connect_stream.lock().await;
-                        lock.write_all(b"DISCONNECT\n").await;
+                        let _ = lock.write_all(b"DISCONNECT\n").await;
                     }
                     break;
                 }
@@ -430,6 +421,7 @@ pub fn log_to_file(log_path: &PathBuf, message: &str) {
     }
 }
 
+// Helper function for taking input from the command line
 fn take_input() -> String {
     std::io::stdout().flush().unwrap();
     let mut input = String::new();

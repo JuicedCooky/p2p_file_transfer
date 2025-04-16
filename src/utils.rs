@@ -4,13 +4,10 @@ use tokio::sync::Mutex;
 use tokio::net::TcpStream;
 use tokio::io::BufReader;
 use tokio::io::AsyncBufReadExt;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use std::sync::Arc;
-use std::path::PathBuf;
-use rfd::FileDialog;
 use crate::thread::write::write_a_file_to_stream;
 use crate::thread::write::write_a_folder_to_stream;
-use crate::thread::write::{write_a_file, write_a_folder};
 
 pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
     // let mut file = File::create_new("");
@@ -42,7 +39,7 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
             "3" => {
                 // Acquire lock, and send disconnect message to host
                 let mut lock = stream.lock().await;
-                lock.write_all(b"DISCONNECT\n").await;
+                let _ = lock.write_all(b"DISCONNECT\n").await;
                 return;
             }
             _ => println!("Error: INVALID CHOICE."),
@@ -60,11 +57,11 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         // Send message to host
         if send_type == "FILE" {
             println!("\nSending type message ''FILE'' to host");
-            lock.write_all(b"FILE\n").await;
+            let _ = lock.write_all(b"FILE\n").await;
             //println!("Message sent");
         } else if send_type == "FOLDER" {
             println!("\nSending type message ''FOLDER'' to host");
-            lock.write_all(b"FOLDER\n").await;
+            let _ = lock.write_all(b"FOLDER\n").await;
             // return;
         }
     }
@@ -78,7 +75,7 @@ pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: 
         // Receive start message
         let mut init_message = String::new();
 
-        reader.read_line(&mut init_message).await;
+        let _ = reader.read_line(&mut init_message).await;
 
         let init_message = init_message.trim().to_string();
 
