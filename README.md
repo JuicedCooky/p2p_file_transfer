@@ -10,7 +10,7 @@
   connects via TCP IPv4 ip address -->
 
 # Contributers
-Alan Zheng - 100868898
+Alan Zheng - 100868898 <br />
 Parsa Zahraei Mohammadabady - 100749173
 
 # Download Link
