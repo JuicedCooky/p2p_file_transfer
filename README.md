@@ -9,6 +9,10 @@
   Connects to the server of the first device,
   connects via TCP IPv4 ip address -->
 
+# Contributers
+Alan Zheng - 100868898
+Parsa Zahraei Mohammadabady - 100749173
+
 # Download Link
 [Download program executable](https://raw.githubusercontent.com/JuicedCooky/p2p_file_transfer/main/p2p.exe)
 
@@ -35,7 +39,7 @@ In order to make use of multiple threads we make use of the tokio library to cre
 
 6. After this the Client should have the option to send more files/folder or close the connection with the Host.
 
-# Run instructions for Dual Hosst and Client
+# Run instructions for Dual Host and Client
 
 1. Select Dual session option
 
