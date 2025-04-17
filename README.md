@@ -10,7 +10,7 @@
   connects via TCP IPv4 ip address -->
 
 # Download Link
-[Download program executable](https://github.com/JuicedCooky/p2p_file_transfer/tree/main/p2p.exe)
+[Download program executable](https://raw.githubusercontent.com/JuicedCooky/p2p_file_transfer/main/p2p.exe)
 
 # Program
 This program is a file sharing system between two devices on the same network. <br />

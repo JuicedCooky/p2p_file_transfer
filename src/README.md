@@ -22,3 +22,5 @@ Only difference is that the host is the one to receive incomming connections
 
 # utils
 This file handles file sharing options during connections and also handles the start of sending and receiving connections by both the host and client.
+
+Read [thread files README](./thread/) for more information.
