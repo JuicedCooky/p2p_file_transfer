@@ -2,3 +2,15 @@ Problems encountered:
 
 With tcpstreams, figuring out a way to determine when a connection is closed:
 - Make a thread just to figuring out that the connection is closed
+
+Sharing TCP streams:
+- Not just making sure that each TCP stream is sharable, had to make sure whatever is using the stream is also thread-safe such as: BuffReader, since it requires to hold onto the stream.
+
+BuffReader:
+- Since making sure that the whole line is read is tricky, we had to make use of BuffReader to make sure that each line is read properly using BuffReader::readline() method.
+  - Could've create a custom function
+
+Ensuring lock starvation:
+- Make sure that either a read or write locks do not hold onto its mutex for too long and starve either read or write
+  - Create two different ports exclusively for reading and writing
+
