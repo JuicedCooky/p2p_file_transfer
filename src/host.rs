@@ -24,6 +24,7 @@ impl Host {
             Err(e) => println!("Could not start server!\n{}",e.to_string()),
         }
 
+        // Wait for connections
         loop {
             println!("Waiting on client");
             let stream = listener.accept().await;
@@ -38,6 +39,7 @@ impl Host {
 
                     let connect_option = dual::take_input();
 
+                    // Make decision to accept or deny connection
                     match connect_option.as_str() {
                         "y" => {
 
@@ -54,12 +56,6 @@ impl Host {
                             } else {
                                 return Ok(());
                             }
-                            /*  
-                            let read_stream = tokio::spawn(async move{
-                                // let mut buffer = String::new();
-                                read_from_stream(stream_read_copy,addr.ip().to_string(),None).await;
-                            });
-                            */
                         }
                         _=> {
                             stream.write_all(b"Rejected\n").await?;
@@ -69,12 +65,6 @@ impl Host {
                             continue;
                         }
                     }
-
-                    // let result = options.await;
-                    // tokio::spawn(async move{
-                    //     let mut buf = [0;10];
-                    //     stream.read(&mut buf[..]);
-                    // });
                 }
                 Err(e) => eprintln!("Failed connection :{}",e),
             }
@@ -83,7 +73,8 @@ impl Host {
 
 }
 
-pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_base: Arc<Mutex<TcpStream>>, outgoing_adder:String) -> bool {
+// Function to handle reception of files and folders from client
+async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_base: Arc<Mutex<TcpStream>>, outgoing_adder:String) -> bool {
 
     let mut file_save_location = PathBuf::new();
 
@@ -102,11 +93,10 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
 
         let send_type = line.trim().to_string();
 
-        //println!("Received send_type message {} from client", send_type);
-
         match send_type.as_str() {
             "FILE" => {
 
+                // Initialize location to store read files
                 if file_save_location.as_mut_os_str().is_empty() {
                     file_save_location = tokio::task::spawn_blocking(|| {
                         FileDialog::new()
@@ -119,17 +109,21 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                     });
                 }
                 
+                // Prompt client to start sending file
                 let _ = lock.write_all(b"START FILE\n").await;
 
                 // Free lock for reading stream
                 drop(lock);
 
                 let stream_clone = Arc::clone(&stream_clone_base);
-    
+                
+                // Enter file reading process
                 read_file_from_stream(stream_clone, file_save_location.clone()).await;
                 
             },
             "FOLDER" => {
+
+                // Initialize location to store read folders
                 if folder_save_location.as_mut_os_str().is_empty() {
                     folder_save_location = tokio::task::spawn_blocking(|| {
                         FileDialog::new()
@@ -142,6 +136,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
                     });
                 } 
 
+                // Prompt client to start sending folder(s)
                 let _ = lock.write_all(b"START FOLDER\n").await;
                 
                 // Free lock for reading stream
@@ -149,6 +144,7 @@ pub async fn handle_host_session(stream: &Arc<Mutex<TcpStream>>, stream_clone_ba
 
                 let stream_clone = Arc::clone(&stream_clone_base);
 
+                // Enter folder reading process
                 read_folder_from_stream(stream_clone, outgoing_adder.clone(), folder_save_location.clone()).await;
     
             },

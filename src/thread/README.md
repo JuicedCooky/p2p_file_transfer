@@ -85,4 +85,4 @@ Seperate versions of each read function exist to be used by Dual sessions. The p
 ```
 read_file_from_stream_dual(stream: Arc<Mutex<TcpStream>>, file_save_location: PathBuf, log_path: PathBuf)
 ```
-take an argument log_path, which is a path the function uses to write a log text file the progress that has been made in the parsing of received files and folders. This is done in lieu of printing such information to the command-line, which would risk cluttering a Dual sessions viewers interface as they concurrently run their client subthread.
+take an argument log_path, which is a path the function uses to write a log text file the progress that has been made in the parsing of received files and folders. This is done in lieu of printing such information to the command-line, which would risk cluttering a Dual sessions users interface as they concurrently run their client subthread.

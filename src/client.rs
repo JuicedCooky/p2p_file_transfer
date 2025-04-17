@@ -17,6 +17,7 @@ impl Client{
 
             clearscreen::clear().expect("failed to clear screen");
 
+            // Choose ip-address to connect to
             print!("Enter ip-address:socket, or 'b' to go back to the menu:");
             
             let ip_addr = dual::take_input();
@@ -48,6 +49,7 @@ impl Client{
                             println!("Server accepted the connection");
                             println!("Connected to Server: {}",ip_addr);
 
+                            // Open menu of file and folder sharing options
                             let stream = Arc::new(Mutex::new(stream));
                             let stream_cloned = Arc::clone(&stream);
                             let options_join = tokio::spawn(async move{
@@ -66,13 +68,7 @@ impl Client{
                             continue;
                         }
                     }
-
-                    
-                    //let stream_read_copy = Arc::clone(&stream);  
-                    // tokio::spawn(async move{
-                        
-                    // });
-                    
+             
                     return Ok(())
                 }
                 Err(_e) => {

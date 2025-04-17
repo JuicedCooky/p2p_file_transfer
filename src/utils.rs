@@ -1,4 +1,3 @@
-// use std::io::Read;
 use tokio::sync::Mutex;
 use tokio::net::TcpStream;
 use tokio::io::BufReader;
@@ -10,8 +9,8 @@ use crate::thread::write::write_a_file_to_stream;
 use crate::thread::write::write_a_folder_to_stream;
 
 pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
-    // let mut file = File::create_new("");
     loop {
+        // Present user with options for file and folder sharing with host
         println!("What would you like to do?");
         println!("1. Select File to send to host");
         println!("2. Select Folder to send to host");
@@ -20,18 +19,17 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
         
         let choice = dual::take_input();
 
+        // Parse user choice
         match choice.as_str(){
             "1" => {
                 let cloned_stream = Arc::clone(&stream);
                 let send_type = String::from("FILE");
                 handle_sender_session(&stream, cloned_stream, send_type).await;
-                //write_a_file(cloned_stream,None).await;
             }
             "2" => {
                 let cloned_stream = Arc::clone(&stream);
                 let send_type = String::from("FOLDER");
                 handle_sender_session(&stream, cloned_stream, send_type).await;
-                //write_a_folder(cloned_stream).await;
             }
             "3" => {
                 // Acquire lock, and send disconnect message to host
@@ -44,9 +42,10 @@ pub async fn display_options(stream: Arc<Mutex<TcpStream>>) -> (){
     }
 }
 
-pub async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: Arc<Mutex<TcpStream>>,send_type: String) -> () {
+// Function to handle sending of files and folders to host
+async fn handle_sender_session(stream: &Arc<Mutex<TcpStream>>, stream_copy: Arc<Mutex<TcpStream>>,send_type: String) -> () {
  
-    // Send file type to be sent to host
+    // Inform host of content to be received, either file or folder
     {   
         // Acquire lock
         let mut lock = stream.lock().await;
